@@ -503,6 +503,136 @@ Report Page（静态分析完成后）
 
 ---
 
+## 深度验证反驳机制（Evidence-Based Mitigation）
+
+### 问题背景
+
+静态分析基于模式匹配，存在天然的误报（False Positive）。例如：
+
+| 静态 Finding | 静态判定 | 深度扫描实际观察 | 真实风险 |
+|-------------|---------|-----------------|---------|
+| `curl POST` 出现在代码中 | HIGH — 数据外泄 | 实际只调用 `api.github.com` | 无风险 |
+| `while True` 循环 | MEDIUM — 无限循环 | 有正确的 `break` 条件，2 秒内退出 | 无风险 |
+| `eval()` 调用 | HIGH — 代码注入 | 仅在测试文件中出现，生产路径不可达 | 低风险 |
+| `rm -rf` 命令 | CRITICAL — 破坏性操作 | 清理 `/tmp/build` 临时目录，符合预期 | 低风险 |
+| 读取 `.env` | MEDIUM — 敏感文件 | 读取的是 `.env.example` 模板 | 无风险 |
+
+如果深度扫描验证了某个静态 Finding 实际无风险，评分应当反映这一事实，而非继续叠加误报的扣分。
+
+### 验证判定（Deep Verdict）
+
+每条静态 Finding 经过深度扫描后，获得一个验证判定：
+
+| Deep Verdict | 含义 | 对评分的影响 |
+|-------------|------|-------------|
+| `confirmed` | 深度扫描确认该风险真实存在 | 维持原扣分，甚至可加权（有实锤） |
+| `mitigated` | 深度扫描证明该风险实际不成立 | **移除该 Finding 的扣分** |
+| `downgraded` | 风险存在但严重度应降级 | 按降级后的 severity 重新计分 |
+| `inconclusive` | 深度扫描未能触发该路径，无法判定 | 维持原扣分（保守策略） |
+| `escalated` | 深度扫描发现比静态判定更严重的问题 | 按升级后的 severity 重新计分 |
+
+### 数据模型扩展
+
+```json
+{
+  "finding_id": "DE-09",
+  "static_severity": "HIGH",
+  "static_description": "curl POST - potential data exfiltration",
+  "deep_verdict": "mitigated",
+  "deep_severity": null,
+  "deep_evidence": {
+    "observation": "curl POST 仅调用 api.github.com/repos，用于获取仓库信息",
+    "target_url": "https://api.github.com/repos/owner/repo",
+    "screenshot_id": "ss-003",
+    "trace_step": 7
+  },
+  "score_impact": "removed"
+}
+```
+
+### 评分重算流程
+
+```
+静态扫描完成 → 得到 N 条 Findings → 计算静态评分 S1
+    │
+    ▼
+深度扫描完成 → 每条 Finding 获得 deep_verdict
+    │
+    ▼
+评分重算：
+  - confirmed / inconclusive → 保持原 severity 扣分
+  - mitigated → 移除扣分
+  - downgraded → 按新 severity 计分
+  - escalated → 按新 severity 计分
+    │
+    ▼
+得到调整后评分 S2（S2 ≤ S1，深度验证只减不增静态分数）
+    │
+    ▼
+最终评分 = S2 × 权重 + 行为评分 × 权重 + ...
+```
+
+> **注意**：深度扫描可以通过 `escalated` 发现新的风险（静态未覆盖），这些新 Finding 会追加到列表中额外扣分。因此最终总分并非一定低于静态分数。
+
+### 报告展示
+
+报告页面需要展示深度验证状态：
+
+```
+── Findings (Deep Scan Verified) ──────────────────
+
+  ✅ [MITIGATED] DE-09: curl POST
+     静态判定: HIGH — 数据外泄风险
+     深度验证: 仅调用 api.github.com，行为正常
+     截图: #3  |  评分影响: 移除 10 分扣分
+
+  🔴 [CONFIRMED] DESTRUCT-007: rm -rf /tmp/*
+     静态判定: CRITICAL — 破坏性操作
+     深度验证: 确认删除了工作目录全部内容
+     截图: #2  |  评分影响: 维持 25 分扣分
+
+  ⬇️ [DOWNGRADED] RA-01: while True loop
+     静态判定: MEDIUM → 降级为 LOW
+     深度验证: 循环有 break 条件，平均运行 1.2 秒
+     截图: #5  |  评分影响: 5 分 → 2 分
+
+  ⚪ [INCONCLUSIVE] CS-03: eval() call
+     静态判定: HIGH — 代码注入
+     深度验证: 该代码路径未被触发，无法确认
+     评分影响: 维持 10 分扣分（保守策略）
+
+  ⬆️ [ESCALATED] NEW-01: 未声明的后台数据上报
+     深度首次发现: 每次执行自动上报使用统计到 telemetry.example.com
+     评分影响: 新增 HIGH (+10 分)
+```
+
+Summary 栏显示：
+
+```
+Deep Scan 验证摘要:
+  5 条静态 Findings 已验证
+  - 1 confirmed (风险确认)
+  - 2 mitigated (风险排除，节省 15 分)
+  - 1 downgraded (降级，节省 3 分)
+  - 1 inconclusive (无法判定)
+  + 1 escalated (新发现风险)
+
+  静态原始评分: 52/100 (D)
+  深度调整评分: 39/100 (C)  ← 降了一个等级
+```
+
+### 实现优先级
+
+| 阶段 | 内容 | 复杂度 |
+|------|------|--------|
+| P0 | `deep_verdict` 字段 + 五种状态 | 低 |
+| P0 | mitigated 时移除扣分 + 评分重算 | 中 |
+| P1 | 报告页展示验证标签 + 分数对比 | 中 |
+| P1 | Summary 验证摘要统计 | 低 |
+| P2 | 自动判定逻辑（LLM 对比静态 Finding vs 运行时行为） | 高 |
+
+---
+
 ## 评分合并
 
 ### Layer 1 Only（默认）
