@@ -1,0 +1,303 @@
+# SkillGuard 可配置规则 (Configurable Rules)
+# 用户可修改此文件来调整规则行为 — 也可通过 /rules 页面可视化编辑
+#
+# enabled:   true/false  — 开关（false 则跳过该规则）
+# severity:  CRITICAL / HIGH / MEDIUM / LOW / INFO  — 覆盖严重级别
+# whitelist: []  — 白名单（命中任一条则跳过），支持子字符串匹配
+
+data_exfiltration:
+- id: DE-01
+  pattern: \.env\b
+  description: Reads .env file (may contain secrets)
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-02
+  pattern: ~/\.ssh/
+  description: Accesses SSH directory
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-03
+  pattern: /etc/passwd\b
+  description: Reads /etc/passwd
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-04
+  pattern: /etc/shadow\b
+  description: Reads /etc/shadow
+  severity: CRITICAL
+  enabled: true
+  whitelist: []
+- id: DE-05
+  pattern: ~/.aws/credentials
+  description: Reads AWS credentials
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-06
+  pattern: ~/.kube/config
+  description: Reads Kubernetes config
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-07
+  pattern: credentials\.json
+  description: Reads credentials file
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-08
+  pattern: \.claude/settings
+  description: Reads Claude settings
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-09
+  pattern: curl\s+.*-X\s*POST\b
+  description: curl POST - potential data exfiltration
+  severity: HIGH
+  enabled: true
+  whitelist:
+  - api.github.com
+  - registry.npmjs.org
+- id: DE-10
+  pattern: curl\s+.*--data\b
+  description: curl with data payload
+  severity: HIGH
+  enabled: true
+  whitelist:
+  - api.github.com
+- id: DE-11
+  pattern: requests\.post\s*\(
+  description: Python requests.post - outbound data
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-12
+  pattern: fetch\s*\([^)]*method\s*:\s*["']POST["']
+  description: fetch POST - outbound data
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-13
+  pattern: urllib\.request\.urlopen
+  description: urllib outbound request
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-14
+  pattern: http\.client\.HTTP
+  description: http.client outbound connection
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-15
+  pattern: webhook
+  description: Webhook URL reference
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: DE-16
+  pattern: ngrok
+  description: ngrok tunnel - external exposure
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-17
+  pattern: bigquery
+  description: URL pointing to data collection/analytics endpoint
+  severity: HIGH
+  enabled: true
+  whitelist: []
+- id: DE-18
+  pattern: (?:analytics|telemetry|tracking|collect)
+  description: URL pointing to data collection/analytics endpoint
+  severity: HIGH
+  enabled: true
+  whitelist: []
+supply_chain:
+- id: SC-01
+  pattern: curl\s+[^|]*\|\s*(bash|sh|python|perl)\b
+  description: 'Pipe-to-shell: curl | bash - remote code execution'
+  severity: CRITICAL
+  enabled: true
+  whitelist: []
+- id: SC-02
+  pattern: wget\s+[^|]*\|\s*(bash|sh|python|perl)\b
+  description: 'Pipe-to-shell: wget | sh - remote code execution'
+  severity: CRITICAL
+  enabled: true
+  whitelist: []
+- id: SC-03
+  pattern: curl\s+.*\|\s*sudo\b
+  description: 'Pipe-to-sudo: curl | sudo - elevated remote execution'
+  severity: CRITICAL
+  enabled: true
+  whitelist: []
+- id: SC-04
+  pattern: git\s+clone\s+
+  description: git clone - pulls external code
+  severity: MEDIUM
+  enabled: true
+  whitelist:
+  - github.com/anthropics
+  - github.com/modelcontextprotocol
+- id: SC-05
+  pattern: pip\s+install\s+(?!.*==)(?!.*>=)(?!.*~=)(\S+)
+  description: pip install without version pinning
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: SC-06
+  pattern: npm\s+install\s+(?!.*@\d)
+  description: npm install without version pinning
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: SC-07
+  pattern: go\s+get\s+
+  description: go get - pulls external dependency
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: SC-08
+  pattern: ^FROM\s+\S+(?!.*@sha256:)
+  description: Dockerfile FROM without digest pinning
+  severity: LOW
+  enabled: true
+  whitelist:
+  - 'python:'
+  - 'node:'
+  - alpine
+resource_abuse:
+- id: RA-01
+  pattern: 'while\s+True\s*:'
+  description: while True loop - potential infinite loop
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: RA-02
+  pattern: 'while\s+1\s*:'
+  description: while 1 loop - potential infinite loop
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: RA-03
+  pattern: while\s*\(\s*true\s*\)
+  description: while(true) loop - potential infinite loop
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: RA-04
+  pattern: for\s*\(\s*;\s*;\s*\)
+  description: for(;;) infinite loop
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: RA-05
+  pattern: retmax\s*=\s*\d{5,}
+  description: Very large retmax value - excessive data fetch
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: RA-06
+  pattern: limit\s*=\s*\d{5,}
+  description: Very large limit value
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: RA-07
+  pattern: time\.sleep\s*\(\s*0\s*\)
+  description: sleep(0) in potential busy loop
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: RA-08
+  pattern: retry.*=\s*(?:True|-1|999|float\(["']inf)
+  description: Unlimited/excessive retry configuration
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+license_compliance:
+- id: LC-01
+  pattern: proprietary\s+and\s+confidential
+  description: Proprietary and confidential license
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: LC-02
+  pattern: all\s+rights\s+reserved
+  description: All rights reserved notice
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: LC-03
+  pattern: unauthorized\s+copying.*strictly\s+prohibited
+  description: Copying prohibited notice
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: LC-04
+  pattern: non-?commercial
+  description: Non-commercial license restriction
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: LC-05
+  pattern: \bbilling\b|\bsubscription\b|\benterprise\b|\bpaid\s+(?:plan|tier|api)\b
+  description: References commercial service (billing/subscription/enterprise/paid)
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: LC-06
+  pattern: \bKEGG\b|\bBenchling\b|\bSnowflake\b
+  description: Known commercial/academic-license platform referenced
+  severity: INFO
+  enabled: true
+  whitelist: []
+- id: LC-07
+  pattern: \bBigQuery\b
+  description: Google BigQuery (commercial service, data collection risk)
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+least_privilege:
+- id: LP-01
+  pattern: missing allowed-tools
+  description: No allowed-tools declared in frontmatter - implicit all-tools access
+  severity: LOW
+  enabled: true
+  whitelist: []
+- id: LP-02
+  pattern: 'allowed-tools: shell'
+  description: Shell access declared in allowed-tools
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: LP-03
+  pattern: shell + network + write
+  description: 'Dangerous tool combination: shell + network + file write access'
+  severity: HIGH
+  enabled: true
+  whitelist: []
+prompt_injection_auxiliary:
+- id: PI-AUX-01
+  pattern: '[\u200b\u200c\u200d\ufeff\u2060]'
+  description: Zero-width character detected (possible steganographic injection)
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: PI-AUX-02
+  pattern: '[A-Za-z0-9+/]{200,}={0,2}'
+  description: Long base64-like string - may hide injected payload
+  severity: MEDIUM
+  enabled: true
+  whitelist: []
+- id: PI-AUX-03
+  pattern: <!--.*(?:instruction|ignore|override|system prompt|you must|you are now).*-->
+  description: Hidden instruction detected in HTML comment
+  severity: HIGH
+  enabled: true
+  whitelist: []

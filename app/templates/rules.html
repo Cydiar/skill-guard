@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% block title %}Rules Editor — SkillGuard{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10" x-data="rulesEditor()" x-init="load()" @lang-changed.window="lang = $event.detail.lang">
+
+  <!-- Header -->
+  <div class="mb-8">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">
+        <span x-show="lang==='en'">Configurable Rules</span>
+        <span x-show="lang==='zh'">可配置规则</span>
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <span x-show="lang==='en'">Edit audit rules — toggle, change severity, add whitelist entries, or create new rules. Built-in rules (Prompt Injection core, Permission Escalation, Destructive Ops, Code Security, Credential Leaks) are not listed here.</span>
+        <span x-show="lang==='zh'">编辑审计规则 — 开关、调整严重级别、添加白名单条目或创建新规则。内置规则（Prompt 注入核心短语、权限提升、破坏性操作、代码安全、凭证泄露）不在此列。</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div x-show="toast" x-transition class="fixed top-20 right-6 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg"
+    :class="toastType === 'ok' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'">
+    <span x-text="toast"></span>
+  </div>
+
+  <!-- Loading -->
+  <div x-show="loading" class="text-center py-20 text-gray-400">
+    <span x-show="lang==='en'">Loading rules...</span>
+    <span x-show="lang==='zh'">加载规则中...</span>
+  </div>
+
+  <!-- Error -->
+  <div x-show="loadError" class="text-center py-20 text-red-500" x-text="loadError"></div>
+
+  <!-- Dimension tabs -->
+  <div x-show="!loading && !loadError">
+    <div class="flex flex-wrap gap-2 mb-6 border-b border-gray-200 dark:border-gray-800 pb-4">
+      <template x-for="dim in dimensions" :key="dim.key">
+        <button @click="activeDim = dim.key"
+          :class="activeDim === dim.key
+            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+          <span x-text="lang === 'zh' ? dim.label_zh : dim.label_en"></span>
+          <span class="ml-1 opacity-60" x-text="'(' + dim.rules.length + ')'"></span>
+        </button>
+      </template>
+    </div>
+
+    <!-- Active dimension -->
+    <template x-for="dim in dimensions" :key="dim.key">
+      <div x-show="activeDim === dim.key">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-lg font-semibold" x-text="lang === 'zh' ? (dim.label_zh + ' / ' + dim.label_en) : (dim.label_en + ' / ' + dim.label_zh)"></h2>
+            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="lang === 'zh' ? dim.desc_zh : dim.desc_en"></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button @click="addRule(dim)" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+              <span x-show="lang==='en'">+ Add Rule</span>
+              <span x-show="lang==='zh'">+ 新增规则</span>
+            </button>
+            <button x-show="dirty" x-transition @click="save()" :disabled="saving"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 transition-all">
+              <span x-show="!saving && lang==='en'">Save Changes</span>
+              <span x-show="!saving && lang==='zh'">保存修改</span>
+              <span x-show="saving && lang==='en'">Saving...</span>
+              <span x-show="saving && lang==='zh'">保存中...</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Rules table -->
+        <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-800">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-gray-50 dark:bg-gray-900 text-left text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th class="px-4 py-3 w-12">
+                  <span x-show="lang==='en'">On</span><span x-show="lang==='zh'">开关</span>
+                </th>
+                <th class="px-4 py-3 w-20">ID</th>
+                <th class="px-4 py-3 w-28">
+                  <span x-show="lang==='en'">Severity</span><span x-show="lang==='zh'">严重度</span>
+                </th>
+                <th class="px-4 py-3">
+                  <span x-show="lang==='en'">Pattern (regex)</span><span x-show="lang==='zh'">匹配模式 (正则)</span>
+                </th>
+                <th class="px-4 py-3">
+                  <span x-show="lang==='en'">Description</span><span x-show="lang==='zh'">描述</span>
+                </th>
+                <th class="px-4 py-3 w-44">
+                  <span x-show="lang==='en'">Whitelist</span><span x-show="lang==='zh'">白名单</span>
+                </th>
+                <th class="px-4 py-3 w-16"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+              <template x-for="(rule, idx) in dim.rules" :key="dim.key + '-' + idx">
+                <tr class="group" :class="!rule.enabled ? 'opacity-50' : ''">
+                  <!-- Toggle -->
+                  <td class="px-4 py-3">
+                    <button @click="rule.enabled = !rule.enabled; dirty = true"
+                      :class="rule.enabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+                      class="relative w-9 h-5 rounded-full transition-colors">
+                      <span :class="rule.enabled ? 'translate-x-4' : 'translate-x-0.5'"
+                        class="absolute top-0.5 left-0 w-4 h-4 bg-white rounded-full shadow transition-transform"></span>
+                    </button>
+                  </td>
+                  <!-- ID -->
+                  <td class="px-4 py-3">
+                    <input x-model="rule.id" @input="dirty = true"
+                      class="w-full bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 focus:outline-none text-xs font-mono py-0.5">
+                  </td>
+                  <!-- Severity -->
+                  <td class="px-4 py-3">
+                    <select x-model="rule.severity" @change="dirty = true"
+                      class="w-full bg-transparent border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-green-500">
+                      <option value="CRITICAL">CRITICAL</option>
+                      <option value="HIGH">HIGH</option>
+                      <option value="MEDIUM">MEDIUM</option>
+                      <option value="LOW">LOW</option>
+                      <option value="INFO">INFO</option>
+                    </select>
+                  </td>
+                  <!-- Pattern -->
+                  <td class="px-4 py-3">
+                    <input x-model="rule.pattern" @input="dirty = true"
+                      class="w-full bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 focus:outline-none text-xs font-mono py-0.5"
+                      spellcheck="false">
+                  </td>
+                  <!-- Description -->
+                  <td class="px-4 py-3">
+                    <input x-model="rule.description" @input="dirty = true"
+                      class="w-full bg-transparent border-b border-transparent hover:border-gray-300 dark:hover:border-gray-600 focus:border-green-500 focus:outline-none text-xs py-0.5">
+                  </td>
+                  <!-- Whitelist -->
+                  <td class="px-4 py-3">
+                    <div class="flex flex-wrap gap-1 items-center">
+                      <template x-for="(w, wi) in rule.whitelist" :key="wi">
+                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs font-mono">
+                          <span x-text="w"></span>
+                          <button @click="rule.whitelist.splice(wi, 1); dirty = true" class="text-gray-400 hover:text-red-500 ml-0.5">&times;</button>
+                        </span>
+                      </template>
+                      <button @click="addWhitelist(rule)" class="text-xs text-green-600 hover:text-green-700">+</button>
+                    </div>
+                  </td>
+                  <!-- Delete -->
+                  <td class="px-4 py-3 text-right">
+                    <button @click="confirmDelete(dim, idx)"
+                      class="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity text-xs">
+                      <span x-show="lang==='en'">Delete</span><span x-show="lang==='zh'">删除</span>
+                    </button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <div x-show="dim.rules.length === 0" class="text-center py-8 text-gray-400 text-sm">
+            <span x-show="lang==='en'">No rules in this dimension. Click "+ Add Rule" to create one.</span>
+            <span x-show="lang==='zh'">该维度暂无规则，点击"+ 新增规则"创建。</span>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function rulesEditor() {
+  return {
+    loading: true,
+    loadError: '',
+    saving: false,
+    dirty: false,
+    toast: '',
+    toastType: 'ok',
+    activeDim: '',
+    dimensions: [],
+    lang: localStorage.getItem('sg-lang') || 'en',
+
+    async load() {
+      try {
+        const resp = await fetch('/api/rules');
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        this.dimensions = Object.entries(data).map(([key, dim]) => ({
+          key,
+          label_en: dim.label_en,
+          label_zh: dim.label_zh,
+          desc_en: dim.desc_en,
+          desc_zh: dim.desc_zh,
+          rules: (dim.rules || []).map(r => ({
+            id: r.id || '',
+            pattern: r.pattern || '',
+            description: r.description || '',
+            severity: r.severity || 'MEDIUM',
+            enabled: r.enabled !== false,
+            whitelist: Array.isArray(r.whitelist) ? [...r.whitelist] : [],
+          })),
+        }));
+        if (this.dimensions.length) this.activeDim = this.dimensions[0].key;
+      } catch (e) {
+        this.loadError = (this.lang === 'zh' ? '加载规则失败: ' : 'Failed to load rules: ') + e.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async save() {
+      this.saving = true;
+      try {
+        const payload = {};
+        for (const dim of this.dimensions) {
+          payload[dim.key] = dim.rules.map(r => ({
+            id: r.id,
+            pattern: r.pattern,
+            description: r.description,
+            severity: r.severity,
+            enabled: r.enabled,
+            whitelist: r.whitelist.filter(w => w.trim()),
+          }));
+        }
+        const resp = await fetch('/api/rules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+        this.dirty = false;
+        this.showToast(this.lang === 'zh' ? '规则已保存' : 'Rules saved successfully', 'ok');
+      } catch (e) {
+        this.showToast((this.lang === 'zh' ? '保存失败: ' : 'Save failed: ') + e.message, 'err');
+      } finally {
+        this.saving = false;
+      }
+    },
+
+    addRule(dim) {
+      const prefix = dim.key.split('_').map(w => w[0].toUpperCase()).join('');
+      const nextNum = dim.rules.length + 1;
+      const id = `${prefix}-${String(nextNum).padStart(2, '0')}`;
+      dim.rules.push({
+        id,
+        pattern: '',
+        description: '',
+        severity: 'MEDIUM',
+        enabled: true,
+        whitelist: [],
+      });
+      this.dirty = true;
+    },
+
+    addWhitelist(rule) {
+      const msg = this.lang === 'zh' ? '输入白名单条目（子字符串匹配）:' : 'Enter whitelist entry (substring match):';
+      const val = prompt(msg);
+      if (val && val.trim()) {
+        rule.whitelist.push(val.trim());
+        this.dirty = true;
+      }
+    },
+
+    confirmDelete(dim, idx) {
+      const msg = this.lang === 'zh' ? '确认删除该规则？' : 'Delete this rule?';
+      if (confirm(msg)) {
+        dim.rules.splice(idx, 1);
+        this.dirty = true;
+      }
+    },
+
+    showToast(msg, type) {
+      this.toast = msg;
+      this.toastType = type;
+      setTimeout(() => { this.toast = ''; }, 3000);
+    },
+  };
+}
+</script>
+{% endblock %}

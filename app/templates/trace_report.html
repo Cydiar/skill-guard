@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Trace Report — {{ report.get('skill_name', 'SkillGuard') }}{% endblock %}
+
+{% block nav_extras %}
+<button x-data="{ l: localStorage.getItem('sg-lang') || 'en' }"
+  @click="l = l === 'en' ? 'zh' : 'en'; localStorage.setItem('sg-lang', l)"
+  x-text="l === 'en' ? '中文' : 'EN'"
+  class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="traceReport()">
+  <!-- Breadcrumb -->
+  <div class="mb-4">
+    <a href="/report/{{ report.get('scan_id', '') }}" class="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+      </svg>
+      <span x-text="lang === 'en' ? 'Back to Static Report' : '返回静态报告'"></span>
+    </a>
+  </div>
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl font-bold flex items-center gap-2">
+        <svg class="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 01-1.591.659H9.061a2.25 2.25 0 01-1.591-.659L5 14.5m14 0V17a2.25 2.25 0 01-2.25 2.25H7.25A2.25 2.25 0 015 17v-2.5" />
+        </svg>
+        <span x-text="lang === 'en' ? 'Trace Report' : '追踪报告'"></span>
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ report.get('skill_name', '') }} — {{ report.get('github_url', '') }}</p>
+    </div>
+  </div>
+
+  <!-- Info Cards -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+    <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-center">
+      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1" x-text="lang === 'en' ? 'Model' : '模型'"></div>
+      <div class="text-sm font-mono font-bold">{{ report.get('model', '') }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-center">
+      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1" x-text="lang === 'en' ? 'Actual Cost' : '实际费用'"></div>
+      <div class="text-sm font-mono font-bold">${{ '%.4f' % deep_scan.get('actual_cost', 0) }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-center">
+      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1" x-text="lang === 'en' ? 'Turns / Tool Calls' : '对话轮次 / 工具调用'"></div>
+      <div class="text-sm font-bold">{{ report.get('total_turns', 0) }} / {{ report.get('total_tool_calls', 0) }}</div>
+    </div>
+    <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-800 text-center">
+      <div class="text-xs text-gray-500 dark:text-gray-400 mb-1" x-text="lang === 'en' ? 'Tokens (In / Out)' : 'Token (输入/输出)'"></div>
+      <div class="text-sm font-mono font-bold">{{ '{:,}'.format(report.get('total_tokens_in', 0)) }} / {{ '{:,}'.format(report.get('total_tokens_out', 0)) }}</div>
+    </div>
+  </div>
+
+  <!-- Risk Score Comparison -->
+  <div class="mb-8 p-6 rounded-xl border border-gray-200 dark:border-gray-800">
+    <h2 class="text-lg font-semibold mb-4" x-text="lang === 'en' ? 'Risk Score: Static vs Dynamic' : '风险分数：静态 vs 动态'"></h2>
+    <div class="grid grid-cols-2 gap-6">
+      <div class="text-center">
+        <div class="text-sm text-gray-500 dark:text-gray-400 mb-2" x-text="lang === 'en' ? 'Static Analysis' : '静态分析'"></div>
+        <div class="text-3xl font-bold">{{ report.get('static_risk_score', 0) }} <span class="text-lg text-gray-400">/ 100</span></div>
+        <div class="mt-1 text-sm font-medium
+          {% set sl = report.get('static_risk_level', '') %}
+          {% if sl == 'A' %}text-green-600{% elif sl == 'B' %}text-blue-600{% elif sl == 'C' %}text-yellow-600{% elif sl == 'D' %}text-orange-600{% else %}text-red-600{% endif %}
+        ">{{ sl }}</div>
+      </div>
+      <div class="text-center">
+        <div class="text-sm text-gray-500 dark:text-gray-400 mb-2" x-text="lang === 'en' ? 'Dynamic Analysis' : '动态分析'"></div>
+        <div class="text-3xl font-bold">{{ report.get('dynamic_risk_score', 0) }} <span class="text-lg text-gray-400">/ 100</span></div>
+        {% set ds = report.get('dynamic_risk_score', 0) %}
+        <div class="mt-1 text-sm font-medium
+          {% if ds <= 20 %}text-green-600{% elif ds <= 40 %}text-blue-600{% elif ds <= 60 %}text-yellow-600{% elif ds <= 80 %}text-orange-600{% else %}text-red-600{% endif %}
+        ">
+          {% if ds <= 20 %}A{% elif ds <= 40 %}B{% elif ds <= 60 %}C{% elif ds <= 80 %}D{% else %}F{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence Summary -->
+  {% if report.get('evidence_summary') %}
+  {% set es = report.evidence_summary %}
+  <div class="mb-8 p-6 rounded-xl border border-gray-200 dark:border-gray-800">
+    <h2 class="text-lg font-semibold mb-4" x-text="lang === 'en' ? 'Evidence Summary' : '证据汇总'"></h2>
+    <div class="flex flex-wrap gap-3">
+      <div class="px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm">
+        <span class="text-gray-500" x-text="lang === 'en' ? 'Total' : '总计'"></span>
+        <span class="ml-1 font-bold">{{ es.get('total', 0) }}</span>
+      </div>
+      {% if es.get('CRITICAL', 0) > 0 %}
+      <div class="px-4 py-2 rounded-lg bg-red-100 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-400">
+        CRITICAL <span class="font-bold">{{ es.CRITICAL }}</span>
+      </div>
+      {% endif %}
+      {% if es.get('HIGH', 0) > 0 %}
+      <div class="px-4 py-2 rounded-lg bg-orange-100 dark:bg-orange-900/20 text-sm text-orange-700 dark:text-orange-400">
+        HIGH <span class="font-bold">{{ es.HIGH }}</span>
+      </div>
+      {% endif %}
+      {% if es.get('MEDIUM', 0) > 0 %}
+      <div class="px-4 py-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/20 text-sm text-yellow-700 dark:text-yellow-400">
+        MEDIUM <span class="font-bold">{{ es.MEDIUM }}</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Evidence Cards -->
+  {% if evidences %}
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold mb-4" x-text="lang === 'en' ? 'Risk Evidence' : '风险证据'"></h2>
+    {{ evidence_html | safe }}
+  </div>
+  {% endif %}
+
+  <!-- Trace Timeline -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-lg font-semibold" x-text="lang === 'en' ? 'Execution Trace' : '执行追踪'"></h2>
+      <button @click="traceExpanded = !traceExpanded"
+        class="text-xs px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        x-text="traceExpanded ? (lang === 'en' ? 'Collapse All' : '全部折叠') : (lang === 'en' ? 'Expand All' : '全部展开')">
+      </button>
+    </div>
+
+    <div x-show="traceExpanded">
+      {{ trace_html | safe }}
+    </div>
+
+    <div x-show="!traceExpanded" class="space-y-1">
+      {% for step in trace_steps %}
+      <div x-data="{ open: false }" class="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+        <button @click="open = !open" class="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono text-gray-400">#{{ step.step_number }}</span>
+            <span class="px-2 py-0.5 rounded text-xs font-medium
+              {% if step.role == 'user' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+              {% elif step.role == 'assistant' %}bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400
+              {% elif step.role == 'tool_call' %}bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400
+              {% elif step.role == 'tool_result' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+              {% elif step.role == 'evidence' %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400
+              {% else %}bg-gray-100 dark:bg-gray-800 text-gray-600{% endif %}
+            ">{{ step.role }}</span>
+            {% if step.risk_level %}
+            <span class="px-2 py-0.5 rounded text-xs font-bold
+              {% if step.risk_level == 'CRITICAL' %}bg-red-100 dark:bg-red-900/30 text-red-700
+              {% elif step.risk_level == 'HIGH' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700
+              {% else %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700{% endif %}
+            ">{{ step.risk_level }}</span>
+            {% endif %}
+          </div>
+          <svg class="w-4 h-4 text-gray-400 transition-transform" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+        <div x-show="open" x-collapse class="px-4 pb-3">
+          <pre class="text-xs whitespace-pre-wrap break-all bg-gray-50 dark:bg-gray-900 rounded p-3 max-h-64 overflow-auto">{{ step.content[:3000] }}</pre>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Projected Costs for Other Models -->
+  {% if report.get('total_tokens_in') %}
+  <div class="mb-8 p-6 rounded-xl border border-gray-200 dark:border-gray-800">
+    <h2 class="text-lg font-semibold mb-4" x-text="lang === 'en' ? 'Projected Cost for Other Models' : '其他模型预估费用'"></h2>
+    <p class="text-xs text-gray-500 mb-3" x-text="lang === 'en' ? 'Based on actual token usage from this run' : '基于本次运行的实际 Token 消耗'"></p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {% set tin = report.get('total_tokens_in', 0) %}
+      {% set tout = report.get('total_tokens_out', 0) %}
+      {% for m in [{'name': 'Claude Sonnet 4.6', 'inp': 3.0, 'out': 15.0}, {'name': 'Claude Opus 4.6', 'inp': 15.0, 'out': 75.0}] %}
+      <div class="p-4 rounded-lg border border-gray-200 dark:border-gray-800 text-center">
+        <div class="text-sm font-medium mb-2">{{ m.name }}</div>
+        <div class="text-lg font-mono font-bold">${{ '%.4f' % (tin / 1000000 * m.inp + tout / 1000000 * m.out) }}</div>
+        <div class="text-xs text-gray-400 mt-1">${{ m.inp }}/M in, ${{ m.out }}/M out</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

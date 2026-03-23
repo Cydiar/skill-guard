@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data & DB
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Environment
+.env
+.env.*
+
+# Docker
+*.tar
+
+# Distribution
+*.zip
+
+# Logs
+*.log
+
+# Redis
+dump.rdb

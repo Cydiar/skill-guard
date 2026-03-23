@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Scanning — SkillGuard{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16" x-data="scanProgress('{{ scan.id }}', '{{ scan.status }}', {{ scan.get('is_multi_skill', 0) | int }})">
+  <div class="text-center mb-10">
+    <h1 class="text-2xl font-bold mb-2">Security Scan in Progress</h1>
+    <p class="text-gray-500 dark:text-gray-400 text-sm break-all">{{ scan.github_url }}</p>
+  </div>
+
+  <!-- Multi-skill detection notice -->
+  <div x-show="isMultiSkill && totalSkills > 0" x-cloak class="mb-6 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 text-center">
+    <p class="text-sm font-medium text-blue-700 dark:text-blue-400">
+      Detected <span x-text="totalSkills" class="font-bold"></span> skills — scanning each individually
+    </p>
+    <p x-show="doneSkills > 0" class="text-xs text-blue-600 dark:text-blue-400 mt-1">
+      Completed <span x-text="doneSkills"></span> / <span x-text="totalSkills"></span>
+    </p>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="mb-10">
+    <div class="flex justify-between text-sm text-gray-500 dark:text-gray-400 mb-2">
+      <span x-text="phaseLabel"></span>
+      <span x-text="progress + '%'"></span>
+    </div>
+    <div class="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+      <div
+        class="h-full bg-green-500 rounded-full transition-all duration-500"
+        :style="'width: ' + progress + '%'"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Phase Checklist -->
+  <div class="space-y-4">
+    <template x-for="step in steps" :key="step.id">
+      <div class="flex items-center gap-3 p-4 rounded-lg border transition-colors"
+        :class="{
+          'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/10': step.status === 'done',
+          'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/10 animate-pulse': step.status === 'active',
+          'border-gray-200 dark:border-gray-800': step.status === 'pending',
+          'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10': step.status === 'error',
+        }">
+        <!-- Icon -->
+        <div class="flex-shrink-0">
+          <template x-if="step.status === 'done'">
+            <svg class="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+          </template>
+          <template x-if="step.status === 'active'">
+            <svg class="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+          </template>
+          <template x-if="step.status === 'pending'">
+            <div class="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+          </template>
+          <template x-if="step.status === 'error'">
+            <svg class="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </template>
+        </div>
+        <!-- Label -->
+        <span class="text-sm font-medium" x-text="step.label"
+          :class="{
+            'text-green-700 dark:text-green-400': step.status === 'done',
+            'text-blue-700 dark:text-blue-400': step.status === 'active',
+            'text-gray-400 dark:text-gray-500': step.status === 'pending',
+            'text-red-700 dark:text-red-400': step.status === 'error',
+          }"></span>
+      </div>
+    </template>
+  </div>
+
+  <!-- Error Message -->
+  <div x-show="errorMsg" class="mt-6 p-4 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
+    <p class="text-sm text-red-700 dark:text-red-400" x-text="errorMsg"></p>
+    <a href="/" class="inline-block mt-3 text-sm text-red-600 dark:text-red-400 hover:underline">Try another URL</a>
+  </div>
+
+  <!-- Auto-redirect notice -->
+  <div x-show="phase === 'done'" class="mt-6 text-center">
+    <p class="text-sm text-gray-500 dark:text-gray-400">Scan complete! Redirecting to report...</p>
+  </div>
+</div>
+{% endblock %}

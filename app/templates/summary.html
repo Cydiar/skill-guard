@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}Summary — {{ scan.github_url }} — Skill Guard{% endblock %}
+
+{% block nav_extras %}
+<button x-data="{ l: localStorage.getItem('sg-lang') || 'en' }"
+  @click="l = l === 'en' ? 'zh' : 'en'; localStorage.setItem('sg-lang', l)"
+  x-text="l === 'en' ? '中文' : 'EN'"
+  class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+</button>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="reportPage('{{ scan.id }}')">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl font-bold" x-text="lang === 'en' ? 'Multi-Skill Summary' : '多技能汇总'"></h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 break-all mt-1">{{ scan.github_url }}</p>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ report.get('total_skills', children | length) }} skills detected</p>
+    </div>
+    <div class="flex items-center gap-3">
+      <!-- Deep Scan Button -->
+      <button @click="showDeepScanModal = true"
+        class="px-4 py-1.5 text-xs font-medium rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center gap-1.5">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 00.659 1.591L19 14.5M14.25 3.104c.251.023.501.05.75.082M19 14.5l-2.47 2.47a2.25 2.25 0 01-1.591.659H9.061a2.25 2.25 0 01-1.591-.659L5 14.5m14 0V17a2.25 2.25 0 01-2.25 2.25H7.25A2.25 2.25 0 015 17v-2.5" />
+        </svg>
+        <span x-text="lang === 'en' ? 'Deep Scan' : '深度扫描'"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Level Cards ── -->
+  {% set by_level = report.get('by_level', {}) %}
+  {% set total_skills = report.get('total_skills', children | length) or 1 %}
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+    {% for lv, label_en, label_zh, border_color, text_color in [
+      ('A', 'SAFE', '安全', 'border-b-green-500', 'text-green-600 dark:text-green-400'),
+      ('B', 'ACCEPTABLE', '可接受', 'border-b-blue-500', 'text-blue-600 dark:text-blue-400'),
+      ('C', 'WARNING', '警告', 'border-b-yellow-500', 'text-yellow-600 dark:text-yellow-400'),
+      ('D', 'UNSAFE', '不安全', 'border-b-orange-500', 'text-orange-600 dark:text-orange-400'),
+      ('F', 'DANGEROUS', '危险', 'border-b-red-500', 'text-red-600 dark:text-red-400'),
+    ] %}
+    <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-800 border-b-2 {{ border_color }}">
+      <div class="text-xs font-medium tracking-wide text-gray-400 dark:text-gray-500 uppercase mb-2">
+        {{ lv }} · <span x-text="lang === 'en' ? '{{ label_en }}' : '{{ label_zh }}'"></span>
+      </div>
+      <div class="text-3xl font-bold {{ text_color }}">{{ by_level.get(lv, 0) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- ── Risk Distribution Bar ── -->
+  <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-800 mb-6">
+    <h3 class="text-sm font-semibold mb-3" x-text="lang === 'en' ? 'Risk Distribution' : '风险分布'"></h3>
+    <!-- Stacked bar -->
+    <div class="flex h-2 rounded-full overflow-hidden mb-3">
+      {% set ns = namespace(pcts={}) %}
+      {% for lv in ['A','B','C','D','F'] %}
+        {% set _ = ns.pcts.update({lv: (by_level.get(lv, 0) * 100 / total_skills) | round(1)}) %}
+      {% endfor %}
+      {% if ns.pcts.get('A', 0) > 0 %}<div class="bg-green-500" style="width:{{ ns.pcts['A'] }}%"></div>{% endif %}
+      {% if ns.pcts.get('B', 0) > 0 %}<div class="bg-blue-500" style="width:{{ ns.pcts['B'] }}%"></div>{% endif %}
+      {% if ns.pcts.get('C', 0) > 0 %}<div class="bg-yellow-500" style="width:{{ ns.pcts['C'] }}%"></div>{% endif %}
+      {% if ns.pcts.get('D', 0) > 0 %}<div class="bg-orange-500" style="width:{{ ns.pcts['D'] }}%"></div>{% endif %}
+      {% if ns.pcts.get('F', 0) > 0 %}<div class="bg-red-500" style="width:{{ ns.pcts['F'] }}%"></div>{% endif %}
+    </div>
+    <!-- Legend -->
+    <div class="flex flex-wrap gap-x-5 gap-y-1">
+      {% for lv, color, label in [('A','bg-green-500','Safe'),('B','bg-blue-500','Acceptable'),('C','bg-yellow-500','Warning'),('D','bg-orange-500','Unsafe'),('F','bg-red-500','Dangerous')] %}
+      <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <span class="w-2.5 h-2.5 rounded-full {{ color }} inline-block"></span>
+        {{ lv }} {{ '%.1f' % ns.pcts.get(lv, 0) }}%
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ── Estimated Token Consumption ── -->
+  {% if token_stats %}
+  <div class="p-5 rounded-xl border border-gray-200 dark:border-gray-800 mb-8">
+    <h3 class="text-sm font-semibold mb-4" x-text="lang === 'en' ? 'Estimated Token Consumption' : 'Token 消耗估算'"></h3>
+    <!-- Summary numbers -->
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-5">
+      <div class="text-center">
+        <div class="text-xl sm:text-2xl font-bold">{{ '{:,}'.format(token_stats.l1l2_total) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Total L1+L2</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xl sm:text-2xl font-bold">{{ '{:,}'.format(token_stats.l3_total) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Total L3 (max)</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xl sm:text-2xl font-bold">{{ '{:,}'.format(token_stats.avg_l1l2) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Avg L1+L2 / skill</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xl sm:text-2xl font-bold">{{ '{:,}'.format(token_stats.median_l1l2) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Median L1+L2</div>
+      </div>
+      <div class="text-center">
+        <div class="text-xl sm:text-2xl font-bold">{{ '{:,}'.format(token_stats.max_l1l2) }}</div>
+        <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">Max single skill</div>
+      </div>
+    </div>
+    <!-- Horizontal bars -->
+    {% set bar_max = token_stats.l3_total or 1 %}
+    {% for label, value, color in [('L1 SKILL.md', token_stats.l1_total, 'bg-blue-500'), ('L2 Eager', token_stats.l2_eager_total, 'bg-yellow-500'), ('L2 Lazy', token_stats.l2_lazy_total, 'bg-gray-600 dark:bg-gray-400'), ('L3 All files', token_stats.l3_total, 'bg-gray-400 dark:bg-gray-500')] %}
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-24 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5 flex-shrink-0">
+        <span class="w-2 h-2 rounded-full {{ color }} inline-block"></span>{{ label }}
+      </div>
+      <div class="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div class="{{ color }} h-full rounded-full" style="width:{{ (value * 100 / bar_max) | round(1) }}%"></div>
+      </div>
+      <div class="text-xs font-mono text-gray-600 dark:text-gray-400 w-20 text-right flex-shrink-0">{{ '{:,}'.format(value) }}</div>
+    </div>
+    {% endfor %}
+    <!-- Top 5 consumers -->
+    {% if token_stats.top_consumers %}
+    <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800">
+      <div class="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2" x-text="lang === 'en' ? 'Top 5 Token Consumers (L1+L2)' : 'Token 消耗 Top 5 (L1+L2)'"></div>
+      {% for tc in token_stats.top_consumers %}
+      <div class="flex items-center justify-between py-1.5 text-sm">
+        <span class="font-medium">{{ tc.name }}</span>
+        <span class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ '{:,}'.format(tc.total) }} tokens</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ── Skills Table ── -->
+  <div>
+    <h2 class="text-lg font-semibold mb-4" x-text="lang === 'en' ? 'Skills' : '技能列表'"></h2>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800 text-left text-gray-500 dark:text-gray-400">
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Level' : '等级'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Skill Name' : '技能名称'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Score' : '分数'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Findings' : '发现数'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Status' : '状态'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Deep Scan' : '深度扫描'"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for child in children %}
+          <tr class="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+            <td class="py-3">
+              {% if child.risk_level %}
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
+                {% if child.risk_level == 'A' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+                {% elif child.risk_level == 'B' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+                {% elif child.risk_level == 'C' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
+                {% elif child.risk_level == 'D' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
+                {% else %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400{% endif %}
+              ">{{ child.risk_level }}</span>
+              {% else %}
+              <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="py-3">
+              {% if child.status == 'done' %}
+              <a href="/report/{{ child.id }}" class="text-blue-600 dark:text-blue-400 hover:underline font-medium">{{ child.skill_name or '—' }}</a>
+              {% else %}
+              <span class="text-gray-600 dark:text-gray-400">{{ child.skill_name or '—' }}</span>
+              {% endif %}
+            </td>
+            <td class="py-3 font-mono">{{ child.risk_score }}</td>
+            <td class="py-3">
+              {% set child_data = namespace(fcount=0) %}
+              {% for rc in report.get('children', []) %}
+                {% if rc.scan_id == child.id %}
+                  {% set child_data.fcount = rc.finding_count %}
+                {% endif %}
+              {% endfor %}
+              {{ child_data.fcount }}
+            </td>
+            <td class="py-3">
+              {% if child.status == 'done' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Done</span>
+              {% elif child.status == 'error' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Error</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">{{ child.status | capitalize }}</span>
+              {% endif %}
+            </td>
+            <td class="py-3">
+              {% if child.status == 'done' %}
+              {% set child_ds = deep_scan_map.get(child.id, []) %}
+              {% if child_ds %}
+                {% set latest = child_ds[0] %}
+                {% if latest.status == 'done' %}
+                <a href="/deep-scan/{{ latest.id }}/report" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">
+                  <span x-text="lang === 'en' ? 'View Report' : '查看报告'"></span>
+                </a>
+                {% elif latest.status == 'error' %}
+                <span class="text-xs text-red-500">Error</span>
+                {% else %}
+                <a href="/deep-scan/{{ latest.id }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 animate-pulse">
+                  <span x-text="lang === 'en' ? 'Running...' : '运行中...'"></span>
+                </a>
+                {% endif %}
+              {% else %}
+              <span class="text-xs text-gray-400">—</span>
+              {% endif %}
+              {% else %}
+              <span class="text-xs text-gray-400">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Deep Scan Modal -->
+  <div x-show="showDeepScanModal" x-cloak
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    @click.self="showDeepScanModal = false" @keydown.escape.window="showDeepScanModal = false">
+    <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 w-full max-w-md mx-4 p-6">
+      <h3 class="text-lg font-bold mb-1" x-text="lang === 'en' ? 'Deep Scan — Multi-Skill' : '深度扫描 — 多技能'"></h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-4" x-text="lang === 'en' ? 'Each child skill will be deep-scanned.' : '每个子技能将进行深度扫描。'"></p>
+
+      <!-- Model Select -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1.5" x-text="lang === 'en' ? 'Model' : '模型'"></label>
+        <select x-model="deepScanModel" class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+          <option value="claude-sonnet-4-6">Claude Sonnet 4.6</option>
+          <option value="claude-opus-4-6">Claude Opus 4.6</option>
+        </select>
+      </div>
+
+      <!-- Cost Estimate -->
+      <div class="mb-6 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 text-sm">
+        <div class="flex justify-between">
+          <span class="text-gray-500" x-text="lang === 'en' ? 'Estimated cost per skill' : '每个技能预估费用'"></span>
+          <span class="font-mono font-medium" x-text="deepScanCostEstimate"></span>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div x-show="deepScanError" class="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800">
+        <p class="text-sm text-red-700 dark:text-red-400" x-text="deepScanError"></p>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3">
+        <button @click="showDeepScanModal = false"
+          class="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          x-text="lang === 'en' ? 'Cancel' : '取消'"></button>
+        <button @click="startDeepScan()" :disabled="deepScanLoading"
+          class="px-4 py-2 text-sm rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2">
+          <svg x-show="deepScanLoading" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+          </svg>
+          <span x-text="lang === 'en' ? 'Start Deep Scan' : '开始深度扫描'"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

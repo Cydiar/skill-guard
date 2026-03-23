@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}SkillGuard — AI Skill Security Audit{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+  <!-- Hero -->
+  <div class="text-center mb-16">
+    <h1 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+      Audit Any <span class="text-green-500">AI Skill</span> in Seconds
+    </h1>
+    <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
+      Paste a GitHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.
+    </p>
+
+    <!-- Scan Form -->
+    <div x-data="scanForm()" class="max-w-xl mx-auto">
+      <form @submit.prevent="submit" class="flex gap-2">
+        <input
+          type="url"
+          x-model="url"
+          placeholder="https://github.com/owner/repo"
+          required
+          class="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow"
+        >
+        <button
+          type="submit"
+          :disabled="loading"
+          class="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+        >
+          <span x-show="!loading">Scan Now</span>
+          <span x-show="loading" class="flex items-center gap-2">
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            Starting...
+          </span>
+        </button>
+      </form>
+      <p x-show="error" x-text="error" class="mt-2 text-sm text-red-500"></p>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+    <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+      <div class="text-2xl font-bold mb-1">10</div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">Security Dimensions</div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Prompt Injection, Permission Escalation, Data Exfiltration, and more</p>
+    </div>
+    <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+      <div class="text-2xl font-bold mb-1">109</div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">Audit Rules</div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">67 built-in + 42 <a href="/rules" class="underline">configurable</a> — OWASP LLM Top 10, SLSA, SAIF</p>
+    </div>
+    <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+      <div class="text-2xl font-bold mb-1">A-F</div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">Risk Grading</div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Clear letter-grade risk assessment with actionable remediation</p>
+    </div>
+    <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+      <div class="text-2xl font-bold mb-1">$$</div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">Cost Estimation</div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Token consumption and multi-model cost projections</p>
+    </div>
+  </div>
+
+  <!-- Recent Scans -->
+  {% if recent_scans %}
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-semibold">Recent Scans</h2>
+      <button onclick="if(confirm('Clear all scan history?')){fetch('/api/scan/clear',{method:'DELETE'}).then(()=>location.reload())}"
+        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/10 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors">
+        Clear
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800 text-left text-gray-500 dark:text-gray-400">
+            <th class="pb-3 font-medium">Repository</th>
+            <th class="pb-3 font-medium">Skill</th>
+            <th class="pb-3 font-medium">Status</th>
+            <th class="pb-3 font-medium">Risk</th>
+            <th class="pb-3 font-medium">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for scan in recent_scans %}
+          <tr class="border-b border-gray-100 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors">
+            <td class="py-3">
+              <a href="{% if scan.status == 'done' %}/report/{{ scan.id }}{% else %}/scan/{{ scan.id }}{% endif %}" class="text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-xs">
+                {{ scan.github_url }}
+              </a>
+            </td>
+            <td class="py-3 text-gray-600 dark:text-gray-400">
+              {% if scan.get('is_multi_skill') %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Multi-Skill</span>
+              {% else %}
+              {{ scan.skill_name or '—' }}
+              {% endif %}
+            </td>
+            <td class="py-3">
+              {% if scan.status == 'done' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Done</span>
+              {% elif scan.status == 'error' %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Error</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">{{ scan.status | capitalize }}</span>
+              {% endif %}
+            </td>
+            <td class="py-3">
+              {% if scan.risk_level %}
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
+                {% if scan.risk_level == 'A' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400
+                {% elif scan.risk_level == 'B' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400
+                {% elif scan.risk_level == 'C' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400
+                {% elif scan.risk_level == 'D' %}bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400
+                {% else %}bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400{% endif %}
+              ">{{ scan.risk_level }}</span>
+              {% else %}
+              <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="py-3 text-gray-500 dark:text-gray-400 text-xs">{{ scan.created_at[:16] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
