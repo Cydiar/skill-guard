@@ -205,7 +205,7 @@ def load_prds():
         phase_map = {
             "001": "Overview", "002": "UX Flow", "003": "Phase 1",
             "004": "Phase 2", "005": "Phase 3", "006": "Phase 4",
-            "007": "Architecture", "008": "Roadmap",
+            "007": "Architecture", "008": "Roadmap", "009": "Tasks",
         }
         phase = phase_map.get(parts[1], "") if len(parts) >= 2 else ""
         docs.append({

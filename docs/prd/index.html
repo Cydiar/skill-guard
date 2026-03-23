@@ -326,6 +326,7 @@ tbody tr:last-child td { border-bottom: none; }
 <button class="nav-btn" data-doc="prd-006-report-badge"><span class="nav-badge">PRD-006</span><span class="nav-text">Phase 4 — 报告系统与认证徽章</span></button>
 <button class="nav-btn" data-doc="prd-007-architecture"><span class="nav-badge">PRD-007</span><span class="nav-text">技术架构</span></button>
 <button class="nav-btn" data-doc="prd-008-roadmap"><span class="nav-badge">PRD-008</span><span class="nav-text">路线图与里程碑</span></button>
+<button class="nav-btn" data-doc="prd-009-tasks"><span class="nav-badge">PRD-009</span><span class="nav-text">Task Todo</span></button>
   </div>
   <div class="side-actions">
     <button class="btn-icon" id="themeBtn" title="Toggle theme">
@@ -345,6 +346,7 @@ tbody tr:last-child td { border-bottom: none; }
 <button class="pill" data-doc="prd-006-report-badge">PRD-006</button>
 <button class="pill" data-doc="prd-007-architecture">PRD-007</button>
 <button class="pill" data-doc="prd-008-roadmap">PRD-008</button>
+<button class="pill" data-doc="prd-009-tasks">PRD-009</button>
 </div>
 
 <!-- Main -->
@@ -2715,7 +2717,153 @@ Phase 1 ──────── Phase 2 ──────── Phase 3 ──
 <td>&gt; 500</td>
 </tr>
 </tbody></table></div></div></article>
-<div class="doc-foot">Skill Guard PRD &middot; 8 documents</div>
+<article class="doc" id="prd-009-tasks"><div class="doc-head"><div class="doc-meta"><span class="badge-blue">PRD-009</span><span class="badge-muted">Tasks</span></div><h1 class="doc-h1">Task Todo</h1></div><div class="doc-content"><h3 class="doc-h3">总览</h3>
+<div class="table-wrap"><table><thead><tr>
+<th>状态</th>
+<th>含义</th>
+<th>标记</th>
+</tr></thead><tbody>
+<tr>
+<td>✅ 已完成</td>
+<td>功能已上线或代码已合并</td>
+<td><code>[x]</code></td>
+</tr>
+<tr>
+<td>🔵 进行中</td>
+<td>正在开发</td>
+<td><code>[-]</code></td>
+</tr>
+<tr>
+<td>⬚ 未开始</td>
+<td>待启动</td>
+<td><code>[ ]</code></td>
+</tr>
+</tbody></table></div>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 1 — 静态审计引擎</h3>
+<h4 class="doc-h4">后端 + 引擎</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span>初始化 FastAPI 项目结构（<code>app/main.py</code>, <code>routers/</code>, <code>models.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>审计引擎集成（<code>scripts/audit_skill.py :: SkillAuditor</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Git 浅克隆 worker（<code>app/workers/clone.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>静态审计 worker（<code>app/workers/audit_task.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Celery + Redis 任务链（clone &rarr; audit &rarr; 生成报告）</span></li>
+<li><input type="checkbox" checked disabled><span>API: <code>POST /api/scan</code> + <code>GET /api/scan/{id}/status</code> + <code>GET /api/report/{id}</code></span></li>
+<li><input type="checkbox" checked disabled><span>WebSocket 实时进度推送</span></li>
+<li><input type="checkbox" checked disabled><span>SQLite 数据库（扫描记录 + Findings 存储）</span></li>
+</ul>
+<h4 class="doc-h4">规则架构</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span>109 条审计规则拆分：67 内置 + 42 可配置</span></li>
+<li><input type="checkbox" checked disabled><span><code>scripts/rules.yaml</code> 可配置规则文件</span></li>
+<li><input type="checkbox" checked disabled><span><code>_load_configurable_rules()</code> YAML 加载器</span></li>
+<li><input type="checkbox" checked disabled><span><code>_apply_configurable_rules()</code> 通用规则执行器</span></li>
+<li><input type="checkbox" checked disabled><span>6 个 <code>_check_*</code> 函数拆分为内置 + 可配置</span></li>
+<li><input type="checkbox" checked disabled><span>PyYAML 可选依赖（缺失时降级为仅内置规则）</span></li>
+</ul>
+<h4 class="doc-h4">Rules Editor UI</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span><code>GET /api/rules</code> + <code>PUT /api/rules</code> API</span></li>
+<li><input type="checkbox" checked disabled><span>Pydantic 验证（正则合法性 + severity 枚举）</span></li>
+<li><input type="checkbox" checked disabled><span><code>rules.html</code> 可视化编辑器（Alpine.js）</span></li>
+<li><input type="checkbox" checked disabled><span>开关、严重度、Pattern、白名单 CRUD</span></li>
+<li><input type="checkbox" checked disabled><span>Save 按钮仅在修改后显示</span></li>
+</ul>
+<h4 class="doc-h4">前端页面</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span>首页（URL 输入 + 最近扫描列表）</span></li>
+<li><input type="checkbox" checked disabled><span>扫描进度页（WebSocket 实时更新）</span></li>
+<li><input type="checkbox" checked disabled><span>报告页（风险评分 + 维度 Findings + Token 估算 + 成本估算）</span></li>
+<li><input type="checkbox" checked disabled><span>多 Skill 汇总页（Summary）</span></li>
+<li><input type="checkbox" checked disabled><span>方法论页（Methodology，从 <code>audit_skill.py</code> 动态生成）</span></li>
+<li><input type="checkbox" checked disabled><span>全局 CN/EN 双语切换</span></li>
+<li><input type="checkbox" checked disabled><span>暗色/亮色主题切换</span></li>
+<li><input type="checkbox" checked disabled><span>Docker Compose 编排（API + Worker + Redis）</span></li>
+</ul>
+<h4 class="doc-h4">文档</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span>PRD-001 ~ PRD-008 产品需求文档</span></li>
+<li><input type="checkbox" checked disabled><span>PRD 展示站点（<code>docs/prd/index.html</code>，自动从 Markdown 生成）</span></li>
+<li><input type="checkbox" checked disabled><span>Git 版本管理初始化</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 1.5 — Deep Scan（Layer 2 LLM 驱动）</h3>
+<h4 class="doc-h4">已完成</h4>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled><span>Deep Scan 数据模型（<code>deep_scans</code> 表 + <code>trace_steps</code> 表）</span></li>
+<li><input type="checkbox" checked disabled><span>Deep Scan API（<code>POST /api/deep-scan</code> + <code>GET /api/deep-scan/{id}/status</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Deep Scan 进度页（<code>deep_scanning.html</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Trace 报告页（<code>trace_report.html</code>，截图 + 时间线 + 证据卡片）</span></li>
+<li><input type="checkbox" checked disabled><span>LLM Client 抽象层（<code>app/engine/llm_client.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Skill Driver 驱动引擎（<code>app/engine/skill_driver.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Evidence Renderer（<code>app/engine/evidence_renderer.py</code>）</span></li>
+<li><input type="checkbox" checked disabled><span>Summary 页集成 Deep Scan 状态</span></li>
+</ul>
+<h4 class="doc-h4">未完成</h4>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span>截图自动生成（网络请求/文件操作/终端输出渲染为 PNG）</span></li>
+<li><input type="checkbox" disabled><span>AI 自动标注截图（调用 LLM 对截图做风险说明）</span></li>
+<li><input type="checkbox" disabled><span>多模型支持（目前仅 Claude，待接入 Gemini / GPT）</span></li>
+<li><input type="checkbox" disabled><span>API Key 加密传输 + 用完即销毁</span></li>
+<li><input type="checkbox" disabled><span>费用预估弹窗（Deep Scan 前展示预计 Token 和费用）</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 2 — 依赖审计</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span>Python 依赖解析（<code>requirements.txt</code> / <code>pyproject.toml</code>）</span></li>
+<li><input type="checkbox" disabled><span>Node.js 依赖解析（<code>package.json</code> / <code>package-lock.json</code>）</span></li>
+<li><input type="checkbox" disabled><span>集成 OSV API（查询已知 CVE）</span></li>
+<li><input type="checkbox" disabled><span>版本锁定检查（未固定版本、latest 标签）</span></li>
+<li><input type="checkbox" disabled><span>许可证解析（从 PyPI/npm 获取依赖许可证）</span></li>
+<li><input type="checkbox" disabled><span>Go 依赖解析（<code>go.mod</code>）</span></li>
+<li><input type="checkbox" disabled><span>报告页增加 Dependencies Tab</span></li>
+<li><input type="checkbox" disabled><span>集成到任务链（clone &rarr; static &rarr; deps &rarr; 报告）</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 3 — 沙箱运行（Layer 1 Stub）</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span>沙箱 Dockerfile 设计（<code>sandbox/Dockerfile.sandbox</code>）</span></li>
+<li><input type="checkbox" disabled><span>Claude Stub 实现（模拟工具调用链路）</span></li>
+<li><input type="checkbox" disabled><span>网络代理（mitmproxy 透明拦截）</span></li>
+<li><input type="checkbox" disabled><span>文件系统监控（inotifywait）</span></li>
+<li><input type="checkbox" disabled><span>进程监控（seccomp + audit log）</span></li>
+<li><input type="checkbox" disabled><span>行为判定引擎（expected / suspicious / dangerous / critical）</span></li>
+<li><input type="checkbox" disabled><span>行为评分计算 + 与静态评分合并</span></li>
+<li><input type="checkbox" disabled><span>报告页增加 Behavior Tab</span></li>
+<li><input type="checkbox" disabled><span>安全加固（rootless Docker, seccomp, 资源限制）</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 3+ — 深度验证反驳机制</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span><code>deep_verdict</code> 字段扩展（confirmed / mitigated / downgraded / inconclusive / escalated）</span></li>
+<li><input type="checkbox" disabled><span>mitigated 时移除扣分 + 评分重算逻辑</span></li>
+<li><input type="checkbox" disabled><span>报告页展示验证标签（✅ / 🔴 / ⬇️ / ⚪ / ⬆️）</span></li>
+<li><input type="checkbox" disabled><span>Summary 验证摘要统计（&quot;节省 X 分&quot;）</span></li>
+<li><input type="checkbox" disabled><span>LLM 自动判定逻辑（对比静态 Finding vs 运行时行为）</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">Phase 4 — 报告系统与认证徽章</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span>报告持久化 + 可分享短链接（7 天有效）</span></li>
+<li><input type="checkbox" disabled><span>SVG 认证徽章生成（<code>GET /badge/{scan_id}</code>，多样式）</span></li>
+<li><input type="checkbox" disabled><span>PDF 导出（服务端 HTML &rarr; PDF）</span></li>
+<li><input type="checkbox" disabled><span>历史对比（同一 Skill 多次扫描趋势图）</span></li>
+<li><input type="checkbox" disabled><span>Rate Limiting + GitHub OAuth 登录</span></li>
+<li><input type="checkbox" disabled><span>Landing Page（产品首页 + 定价页）</span></li>
+<li><input type="checkbox" disabled><span>Stripe 集成（Pro 版 $9.9/月）</span></li>
+</ul>
+<hr class="doc-hr">
+<h3 class="doc-h3">后续迭代（Post-MVP）</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled><span>支持 Cursor Skills、GitHub Copilot Extensions</span></li>
+<li><input type="checkbox" disabled><span>GitHub Action（push 时自动扫描）</span></li>
+<li><input type="checkbox" disabled><span>用户自定义规则（Web UI 创建 + 导入/导出）</span></li>
+<li><input type="checkbox" disabled><span>API 开放（第三方平台集成）</span></li>
+<li><input type="checkbox" disabled><span>企业版（私有化部署 + RBAC + 合规报告）</span></li>
+<li><input type="checkbox" disabled><span>社区 Skill 安全排行榜</span></li>
+<li><input type="checkbox" disabled><span>一键生成 PR 自动修复检测到的问题</span></li>
+</ul></div></article>
+<div class="doc-foot">Skill Guard PRD &middot; 9 documents</div>
 </main>
 
 </div>
