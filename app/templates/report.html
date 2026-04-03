@@ -228,7 +228,12 @@
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
     @click.self="showDeepScanModal = false" @keydown.escape.window="showDeepScanModal = false">
     <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-800 w-full max-w-md mx-4 p-6">
-      <h3 class="text-lg font-bold mb-4" x-text="lang === 'en' ? 'Deep Scan' : '深度扫描'"></h3>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-bold" x-text="lang === 'en' ? 'Deep Scan' : '深度扫描'"></h3>
+        <a href="https://pipellm.ai" target="_blank" rel="noopener" title="Powered by PIPELLM Gateway">
+          <img src="/static/pipellm.svg" alt="PIPELLM" class="h-4">
+        </a>
+      </div>
 
       <!-- Base URL -->
       <div class="mb-4">
