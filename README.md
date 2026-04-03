@@ -158,4 +158,12 @@ Output includes risk grade (A–F), dimension breakdown, severity findings, and 
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
+
+You are free to use, modify, and distribute SkillGuard in both personal and commercial projects. See the [LICENSE](LICENSE) file for full terms.
+
+---
+
+<p align="center">
+  <sub>Built for the AI Agent ecosystem · <a href="https://clawhub.ai">ClawHub</a> · <a href="https://pipellm.ai">PIPELLM</a></sub>
+</p>
