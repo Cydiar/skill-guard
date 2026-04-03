@@ -81,34 +81,30 @@ YAML-based rule engine — enable, disable, adjust severity, or add whitelist en
 ## Architecture
 
 ```mermaid
-graph TD
-    Browser["🌐 Browser"]
-    FastAPI["⚡ FastAPI + Uvicorn\n:8011"]
-    Static["🔍 Static Scan\nEngine"]
-    Redis["📮 Redis\nBroker + Pub/Sub"]
-    Celery["⚙️ Celery Worker\nDeep Scan"]
-    SQLite["🗄️ SQLite\nScans · Findings · Traces"]
-    LLM["🧠 LLM API\nBYOK"]
-    PIPELLM["🔗 PIPELLM Gateway\n(Optional)"]
-
-    Browser -->|"HTTP / WebSocket"| FastAPI
-    FastAPI --> Static
-    FastAPI -->|"Task Dispatch"| Redis
-    Redis -->|"Task Consume"| Celery
-    FastAPI --> SQLite
+flowchart TD
+    Browser((Browser)) -->|"HTTP / WebSocket"| FastAPI[FastAPI + Uvicorn :8011]
+    FastAPI --> Static[Static Scan Engine]
+    FastAPI -->|"Task Dispatch"| Redis[(Redis Broker + Pub/Sub)]
+    FastAPI --> SQLite[(SQLite — Scans · Findings · Traces)]
+    Redis -->|"Task Consume"| Celery[Celery Worker — Deep Scan]
     Celery --> SQLite
-    Celery -->|"Anthropic Messages API"| LLM
-    Celery -.->|"Optional Routing"| PIPELLM
+    Static --> SQLite
+    Celery -->|"Anthropic Messages API"| LLM{LLM API — BYOK}
+    Celery -.->|"Optional Routing"| PIPELLM[PIPELLM Gateway]
     PIPELLM -.-> LLM
 
-    style Browser fill:#f9f9f9,stroke:#333,color:#333
-    style FastAPI fill:#009688,stroke:#00796b,color:#fff
-    style Static fill:#4caf50,stroke:#388e3c,color:#fff
-    style Redis fill:#f44336,stroke:#d32f2f,color:#fff
-    style Celery fill:#ff9800,stroke:#f57c00,color:#fff
-    style SQLite fill:#2196f3,stroke:#1976d2,color:#fff
-    style LLM fill:#9c27b0,stroke:#7b1fa2,color:#fff
-    style PIPELLM fill:#212121,stroke:#000,color:#fff
+classDef startEndStyle fill:#e8f5e8,stroke:#4caf50,stroke-width:3px,color:#000
+classDef processStyle fill:#e3f2fd,stroke:#2196f3,stroke-width:2px,color:#000
+classDef decisionStyle fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#000
+classDef dataStyle fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#000
+classDef outputStyle fill:#fce4ec,stroke:#e91e63,stroke-width:2px,color:#000
+classDef errorStyle fill:#ffebee,stroke:#f44336,stroke-width:2px,color:#000
+
+class Browser startEndStyle
+class FastAPI,Static,Celery processStyle
+class LLM decisionStyle
+class Redis,SQLite dataStyle
+class PIPELLM errorStyle
 ```
 
 ## Deep Scan
