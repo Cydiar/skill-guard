@@ -125,14 +125,36 @@ Output includes risk grade (A–F), dimension breakdown, severity findings, and 
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| API | FastAPI 0.115 · Uvicorn · Pydantic 2 |
-| Task Queue | Celery 5.4 · Redis 5.2 |
-| Database | SQLite · aiosqlite |
-| LLM Client | httpx (direct Anthropic Messages API) |
-| Frontend | Jinja2 · Alpine.js · Tailwind CSS |
-| Rules Engine | PyYAML · Configurable YAML rules |
+### Backend
+
+| Component | Technology | Role |
+|-----------|-----------|------|
+| Web Framework | **FastAPI 0.115** | Async REST API + SSR page rendering |
+| ASGI Server | **Uvicorn 0.32** | High-performance HTTP server with WebSocket support |
+| Task Queue | **Celery 5.4** | Distributed background task execution for scan jobs |
+| Message Broker | **Redis 5.2** | Task broker + real-time progress pub/sub channel |
+| Database | **SQLite** + aiosqlite | Lightweight persistent storage for scans, findings, traces |
+| Data Validation | **Pydantic 2.9** | Request/response schema validation and serialization |
+| HTTP Client | **httpx** | Direct calls to Anthropic Messages API (no SDK dependency) |
+
+### Frontend
+
+| Component | Technology | Role |
+|-----------|-----------|------|
+| Templating | **Jinja2 3.1** | Server-side HTML rendering |
+| Reactivity | **Alpine.js** | Lightweight client-side interactivity (modals, toggles, i18n) |
+| Styling | **Tailwind CSS** | Utility-first CSS with dark mode support |
+| Real-time | **WebSocket** | Live progress updates during scan execution |
+
+### Audit Engine
+
+| Component | Technology | Role |
+|-----------|-----------|------|
+| Rule Engine | **PyYAML** | 109 configurable rules in declarative YAML format |
+| Static Scanner | Python regex + AST | Pattern matching across 10 security dimensions |
+| Deep Scanner | **Anthropic Messages API** | LLM-driven multi-turn dynamic analysis with tool execution |
+| Token Estimator | Built-in | 4-level (L1/L2-eager/L2-lazy/L3) token & cost projection |
+| LLM Gateway | [**PIPELLM**](https://pipellm.ai) | Optional API gateway for model routing and key management |
 
 ## License
 
