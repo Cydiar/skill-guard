@@ -42,15 +42,26 @@ Open **http://localhost:8011** → paste a Skill URL → scan.
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| **Static Analysis** | Pattern-based scanning across 10 security dimensions with 109 rules (67 built-in + 42 configurable) |
-| **Deep Scan** | LLM-driven dynamic analysis with multi-turn execution trace and evidence collection |
-| **A–F Risk Grading** | Clear letter-grade assessment with per-dimension breakdown |
-| **Token Cost Estimation** | 4-level token analysis (L1–L3) with multi-model cost projections |
-| **Multi-Skill Detection** | Automatic monorepo detection — scans all skills in a single repo |
-| **Bilingual Reports** | Full CN/EN language toggle across all report pages |
-| **Configurable Rules** | YAML-based rule engine — add, disable, or whitelist rules per project |
+### 🔍 Static Analysis
+Pattern-based scanning across **10 security dimensions** with **109 audit rules** (67 built-in + 42 configurable). Covers OWASP LLM Top 10, SLSA supply chain, and Google SAIF framework — from prompt injection to license compliance, every risk surface is checked.
+
+### 🧠 Deep Scan
+Goes beyond static patterns. LLM-driven dynamic analysis executes the skill in a sandboxed multi-turn conversation, traces every tool call, and collects concrete risk evidence. Powered by your own API key — **BYOK** (Bring Your Own Key), nothing stored on the server.
+
+### 📊 A–F Risk Grading
+One glance, one grade. Every skill gets a clear **A–F letter rating** with per-dimension score breakdown, severity distribution, and actionable remediation in both Chinese and English.
+
+### 💰 Token Cost Estimation
+4-level token analysis (**L1** SKILL.md → **L2** eager/lazy references → **L3** scripts) with multi-model cost projections. Know exactly how much a skill costs before you install it.
+
+### 📦 Multi-Skill Detection
+Drop a monorepo URL — SkillGuard automatically discovers every skill inside, scans them in parallel, and generates an aggregated summary report with per-skill deep links.
+
+### 🌐 Bilingual Reports
+Full **CN/EN** language toggle across all pages — report, summary, trace, and progress. One click to switch, preference persisted across sessions.
+
+### ⚙️ Configurable Rules
+YAML-based rule engine — enable, disable, adjust severity, or add whitelist entries per project. Ship your own security policy alongside the default ruleset.
 
 ## Security Dimensions
 
