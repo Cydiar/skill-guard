@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Audit Methodology — SkillGuard{% endblock %}
+
+{% block head %}
+<style>
+/* ── Methodology-specific CSS variables ── */
+:root {
+  --m-background: 0 0% 100%; --m-foreground: 0 0% 3.9%;
+  --m-card: 0 0% 100%; --m-card-foreground: 0 0% 3.9%;
+  --m-primary: 0 0% 9%; --m-primary-foreground: 0 0% 98%;
+  --m-secondary: 0 0% 96.1%; --m-secondary-foreground: 0 0% 9%;
+  --m-muted: 0 0% 96.1%; --m-muted-foreground: 0 0% 45.1%;
+  --m-accent: 0 0% 96.1%; --m-accent-foreground: 0 0% 9%;
+  --m-border: 0 0% 89.8%; --m-input: 0 0% 89.8%; --m-ring: 0 0% 3.9%;
+  --m-radius: 0.5rem;
+  --m-success: 142 76% 36%; --m-success-foreground: 142 76% 90%;
+  --m-warning: 38 92% 50%; --m-info: 217 91% 60%;
+  --m-level-a: 142 71% 45%; --m-level-b: 217 91% 60%; --m-level-c: 45 93% 47%;
+  --m-level-d: 24 95% 53%; --m-level-f: 0 84% 60%;
+  --m-sev-critical-bg: 0 84% 60%/0.12; --m-sev-critical-fg: 0 72% 51%; --m-sev-critical-border: 0 84% 60%/0.25;
+  --m-sev-high-bg: 24 95% 53%/0.1; --m-sev-high-fg: 21 90% 48%; --m-sev-high-border: 24 95% 53%/0.2;
+  --m-sev-medium-bg: 45 93% 47%/0.1; --m-sev-medium-fg: 40 85% 38%; --m-sev-medium-border: 45 93% 47%/0.2;
+  --m-sev-low-bg: 217 91% 60%/0.08; --m-sev-low-fg: 217 80% 50%; --m-sev-low-border: 217 91% 60%/0.18;
+  --m-sev-info-bg: 0 0% 0%/0.04; --m-sev-info-fg: 0 0% 45%; --m-sev-info-border: 0 0% 0%/0.1;
+  --m-cell-ref: 270 60% 55%; --m-card-shadow: 0 0% 0%/0.08;
+}
+.dark {
+  --m-background: 0 0% 3.9%; --m-foreground: 0 0% 98%;
+  --m-card: 0 0% 3.9%; --m-card-foreground: 0 0% 98%;
+  --m-primary: 0 0% 98%; --m-primary-foreground: 0 0% 9%;
+  --m-secondary: 0 0% 14.9%; --m-secondary-foreground: 0 0% 98%;
+  --m-muted: 0 0% 14.9%; --m-muted-foreground: 0 0% 63.9%;
+  --m-accent: 0 0% 14.9%; --m-accent-foreground: 0 0% 98%;
+  --m-border: 0 0% 14.9%; --m-input: 0 0% 14.9%; --m-ring: 0 0% 83.1%;
+  --m-sev-critical-bg: 0 84% 60%/0.15; --m-sev-critical-fg: 0 84% 65%; --m-sev-critical-border: 0 84% 60%/0.3;
+  --m-sev-high-bg: 24 95% 53%/0.12; --m-sev-high-fg: 24 95% 63%; --m-sev-high-border: 24 95% 53%/0.25;
+  --m-sev-medium-bg: 45 93% 47%/0.12; --m-sev-medium-fg: 45 93% 60%; --m-sev-medium-border: 45 93% 47%/0.25;
+  --m-sev-low-bg: 217 91% 60%/0.1; --m-sev-low-fg: 217 91% 70%; --m-sev-low-border: 217 91% 60%/0.2;
+  --m-sev-info-bg: 0 0% 100%/0.06; --m-sev-info-fg: 0 0% 64%; --m-sev-info-border: 0 0% 100%/0.1;
+  --m-cell-ref: 270 60% 70%; --m-card-shadow: 0 0% 0%/0.15;
+}
+
+/* ── Scoped methodology classes ── */
+.methodology h2{font-size:1.25rem;font-weight:600;letter-spacing:-0.02em;margin-top:2rem;margin-bottom:0.75rem}
+.methodology h3{font-size:1rem;font-weight:600;margin-top:1.25rem;margin-bottom:0.5rem}
+.methodology p,.methodology .text-body{font-size:0.875rem;line-height:1.7}
+.methodology .text-muted{color:hsl(var(--m-muted-foreground))}
+.methodology .text-sm{font-size:0.875rem;line-height:1.4}
+.methodology .text-xs{font-size:0.75rem;line-height:1.4}
+.methodology .font-mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+.methodology .font-medium{font-weight:500}
+.methodology .font-semibold{font-weight:600}
+.methodology .tracking-tight{letter-spacing:-0.025em}
+.methodology .flex{display:flex}
+.methodology .items-center{align-items:center}
+.methodology .justify-between{justify-content:space-between}
+.methodology .gap-2{gap:0.5rem}
+.methodology .gap-3{gap:0.75rem}
+
+.methodology .main-container{max-width:72rem;margin:0 auto;padding:2rem 1rem}
+@media(min-width:640px){.methodology .main-container{padding-left:1.5rem;padding-right:1.5rem}}
+@media(min-width:1024px){.methodology .main-container{padding-left:2rem;padding-right:2rem}}
+
+.methodology .card{background:hsl(var(--m-card));border:1px solid hsl(var(--m-border));border-radius:var(--m-radius)}
+.methodology .card-header{padding:1.25rem 1.5rem 0.75rem}
+.methodology .card-content{padding:0 1.5rem 1.25rem}
+.methodology .card-title{font-size:0.875rem;font-weight:600}
+
+.methodology .page-header{display:none}
+
+.methodology .data-table{width:100%;border-collapse:collapse;font-size:0.8125rem}
+.methodology .data-table th{text-align:left;font-weight:500;color:hsl(var(--m-muted-foreground));padding:0.5rem 0.75rem;border-bottom:1px solid hsl(var(--m-border));font-size:0.75rem;text-transform:uppercase;letter-spacing:0.04em}
+.methodology .data-table td{padding:0.5rem 0.75rem;border-bottom:1px solid hsl(var(--m-border)/0.5);vertical-align:top}
+.methodology .data-table tbody tr{transition:background 0.1s}
+.methodology .data-table tbody tr:hover{background:hsl(var(--m-muted)/0.3)}
+.methodology .data-table tbody tr:last-child td{border-bottom:none}
+
+.methodology .cell-ref{font-size:0.6875rem;color:hsl(var(--m-cell-ref));white-space:nowrap}
+.methodology .cell-cost{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.8125rem;font-weight:500;text-align:right;white-space:nowrap}
+.methodology .cost-model-cell{display:flex;align-items:center;gap:6px}
+.methodology .cost-ov-icon{display:inline-flex;align-items:center;flex-shrink:0;line-height:1}
+.methodology .cost-ov-icon svg{width:1em;height:1em}
+
+.methodology .sev{display:inline-flex;align-items:center;border-radius:9999px;font-size:0.6875rem;font-weight:600;padding:0.15rem 0.5rem;line-height:1.2;border:1px solid transparent}
+.methodology .sev-CRITICAL{background:hsl(var(--m-sev-critical-bg));color:hsl(var(--m-sev-critical-fg));border-color:hsl(var(--m-sev-critical-border))}
+.methodology .sev-HIGH{background:hsl(var(--m-sev-high-bg));color:hsl(var(--m-sev-high-fg));border-color:hsl(var(--m-sev-high-border))}
+.methodology .sev-MEDIUM{background:hsl(var(--m-sev-medium-bg));color:hsl(var(--m-sev-medium-fg));border-color:hsl(var(--m-sev-medium-border))}
+.methodology .sev-LOW{background:hsl(var(--m-sev-low-bg));color:hsl(var(--m-sev-low-fg));border-color:hsl(var(--m-sev-low-border))}
+.methodology .sev-INFO{background:hsl(var(--m-sev-info-bg));color:hsl(var(--m-sev-info-fg));border-color:hsl(var(--m-sev-info-border))}
+
+.methodology .badge{display:inline-flex;align-items:center;justify-content:center;border-radius:9999px;font-size:0.6875rem;font-weight:600;line-height:1;padding:0.2rem 0.55rem;white-space:nowrap;border:1px solid transparent}
+.methodology .badge-level{width:1.5rem;height:1.5rem;padding:0;font-size:0.6875rem}
+.methodology .badge-a{background:hsl(var(--m-level-a)/0.15);color:hsl(var(--m-level-a));border-color:hsl(var(--m-level-a)/0.3)}
+.methodology .badge-b{background:hsl(var(--m-level-b)/0.15);color:hsl(var(--m-level-b));border-color:hsl(var(--m-level-b)/0.3)}
+.methodology .badge-c{background:hsl(var(--m-level-c)/0.15);color:hsl(var(--m-level-c));border-color:hsl(var(--m-level-c)/0.3)}
+.methodology .badge-d{background:hsl(var(--m-level-d)/0.15);color:hsl(var(--m-level-d));border-color:hsl(var(--m-level-d)/0.3)}
+.methodology .badge-f{background:hsl(var(--m-level-f)/0.15);color:hsl(var(--m-level-f));border-color:hsl(var(--m-level-f)/0.3)}
+
+.methodology .rule-block{background:hsl(var(--m-muted)/0.4);border-radius:var(--m-radius);padding:0.75rem 1rem;margin:0.5rem 0;font-size:0.8125rem;line-height:1.7}
+.methodology .rule-block code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.8125rem;background:hsl(var(--m-muted));padding:0.1rem 0.35rem;border-radius:3px}
+
+.methodology .section{margin-bottom:2rem}
+
+/* i18n via data-lang on <html> */
+[data-lang="zh"] [data-i18n-en]{display:none!important}
+[data-lang="en"] [data-i18n-zh]{display:none!important}
+
+@media(max-width:640px){.methodology h1{font-size:1.5rem} .methodology .data-table{font-size:0.75rem}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="methodology max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10" x-data @lang-changed.window="lang = $event.detail.lang">
+
+  <!-- Header matching /rules style -->
+  <div class="mb-8">
+    <div>
+      <h1 class="text-2xl font-bold tracking-tight">
+        <span data-i18n-en>Audit Methodology</span>
+        <span data-i18n-zh>审计方法论</span>
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        <span data-i18n-en>Security audit dimensions, detection rules, and cost estimation model</span>
+        <span data-i18n-zh>安全审计维度、检测规则与成本估算模型说明</span>
+      </p>
+    </div>
+  </div>
+
+  {{ methodology_content | safe }}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Bridge: sync Alpine.js lang state with document.documentElement.dataset.lang
+// so the CSS-based [data-lang] i18n system works for methodology content
+(function() {
+  function syncLang() {
+    var lang = localStorage.getItem('sg-lang') || 'en';
+    document.documentElement.dataset.lang = lang;
+  }
+  // Set on load
+  syncLang();
+  // Listen for Alpine lang-changed events
+  window.addEventListener('lang-changed', function(e) {
+    document.documentElement.dataset.lang = e.detail.lang;
+  });
+})();
+</script>
+{% endblock %}

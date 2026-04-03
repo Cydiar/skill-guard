@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from app.db import get_scan, get_scan_findings, get_recent_scans, get_child_scans, get_deep_scan, get_trace_steps
+from app.db import get_scan, get_scan_findings, get_recent_scans, get_child_scans, get_deep_scan, get_trace_steps, get_deep_scans_for_scan
 
 # Make scripts/ importable
 _scripts_dir = str(Path(__file__).resolve().parent.parent.parent / "scripts")
@@ -24,9 +24,16 @@ _methodology_cache: str | None = None
 async def index(request: Request):
     """Home page with URL input and recent scans."""
     recent = get_recent_scans(limit=20)
+
+    deep_scan_map = {}
+    for scan in recent:
+        ds_list = get_deep_scans_for_scan(scan["id"])
+        if ds_list:
+            deep_scan_map[scan["id"]] = ds_list
+
     return request.app.state.templates.TemplateResponse(
         "index.html",
-        {"request": request, "recent_scans": recent},
+        {"request": request, "recent_scans": recent, "deep_scan_map": deep_scan_map},
     )
 
 
@@ -92,7 +99,6 @@ async def report_page(request: Request, scan_id: str):
         token_stats["top_consumers"] = sorted(token_stats["top_consumers"], key=lambda x: x["total"], reverse=True)[:5]
 
         # Build deep scan status map: child_scan_id -> list of deep scans
-        from app.db import get_deep_scans_for_scan
         deep_scan_map = {}
         for child in children:
             child_ds = get_deep_scans_for_scan(child["id"])
@@ -134,19 +140,30 @@ async def report_page(request: Request, scan_id: str):
 
 
 @router.get("/methodology", response_class=HTMLResponse)
-async def methodology_page():
-    """Serve the audit methodology page (generated from audit_skill.py)."""
+async def methodology_page(request: Request):
+    """Serve the audit methodology page (generated from audit_skill.py, wrapped in base.html)."""
     global _methodology_cache
     if _methodology_cache is None:
+        import re
         from audit_skill import HtmlRenderer
         renderer = HtmlRenderer()
         tmp_path = Path(tempfile.mktemp(suffix=".html"))
         try:
             renderer.render_methodology(tmp_path, report_filename="")
-            _methodology_cache = tmp_path.read_text(encoding="utf-8")
+            full_html = tmp_path.read_text(encoding="utf-8")
         finally:
             tmp_path.unlink(missing_ok=True)
-    return HTMLResponse(content=_methodology_cache)
+        # Extract body content: between <div class="main-container" ...> and <!-- Footer -->
+        m = re.search(
+            r'<div\s+class="main-container"[^>]*>(.*?)<!-- Footer -->',
+            full_html,
+            re.DOTALL,
+        )
+        _methodology_cache = m.group(1).strip() if m else full_html
+    return request.app.state.templates.TemplateResponse(
+        "methodology.html",
+        {"request": request, "methodology_content": _methodology_cache},
+    )
 
 
 # ── Deep Scan Page Routes ───────────────────────────────────────────
