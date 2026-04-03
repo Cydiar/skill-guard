@@ -6,7 +6,7 @@
   <!-- Hero -->
   <div class="text-center mb-16">
     <h1 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-      Audit Any <span class="text-green-500">AI Skill</span> in Seconds
+      Audit Any <span class="text-green-500">Skill</span> in Seconds
     </h1>
     <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
       Paste a GitHub or ClawHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.
@@ -18,7 +18,7 @@
         <input
           type="url"
           x-model="url"
-          placeholder="Github / Clawhub Skill Urls"
+          placeholder="Paste a GitHub / ClawHub Skill Urls"
           required
           class="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow"
         >
@@ -83,7 +83,8 @@
             <th class="pb-3 font-medium">Skill</th>
             <th class="pb-3 font-medium">Status</th>
             <th class="pb-3 font-medium">Risk</th>
-            <th class="pb-3 font-medium">Date</th>
+            <th class="pb-3 pl-8 font-medium">Deep Scan</th>
+            <th class="pb-3 pl-4 font-medium">Date</th>
           </tr>
         </thead>
         <tbody>
@@ -125,7 +126,22 @@
               <span class="text-gray-400">—</span>
               {% endif %}
             </td>
-            <td class="py-3 text-gray-500 dark:text-gray-400 text-xs">{{ scan.created_at[:16] }}</td>
+            <td class="py-3 pl-8">
+              {% set scan_ds = deep_scan_map.get(scan.id, []) %}
+              {% if scan_ds %}
+                {% set latest = scan_ds[0] %}
+                {% if latest.status == 'done' %}
+                <a href="/deep-scan/{{ latest.id }}/report" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">View Report</a>
+                {% elif latest.status == 'error' %}
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Error</span>
+                {% else %}
+                <a href="/deep-scan/{{ latest.id }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 animate-pulse">Running...</a>
+                {% endif %}
+              {% else %}
+              <span class="text-gray-400">—</span>
+              {% endif %}
+            </td>
+            <td class="py-3 pl-4 text-gray-500 dark:text-gray-400 text-xs">{{ scan.created_at[:16] }}</td>
           </tr>
           {% endfor %}
         </tbody>
