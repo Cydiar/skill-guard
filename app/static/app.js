@@ -39,18 +39,19 @@ function scanForm() {
 
 /* ── Scan Progress (scanning page) ──────────────────────────────── */
 
-function scanProgress(scanId, initialStatus, initialMultiSkill) {
+function scanProgress(scanId, initialStatus, initialMultiSkill, isClawhub) {
   return {
     scanId,
     phase: initialStatus || 'pending',
     progress: 0,
     errorMsg: '',
     isMultiSkill: !!initialMultiSkill,
+    isClawhub: !!isClawhub,
     totalSkills: 0,
     doneSkills: 0,
     steps: [
       { id: 'pending',  label: 'Queued',    status: 'pending' },
-      { id: 'cloning',  label: 'Cloning repository...', status: 'pending' },
+      { id: 'cloning',  label: isClawhub ? '🦞 Downloading from ClawHub...' : 'Cloning repository...', status: 'pending' },
       { id: 'scanning', label: 'Running security audit...', status: 'pending' },
       { id: 'done',     label: 'Report ready', status: 'pending' },
     ],
@@ -61,8 +62,8 @@ function scanProgress(scanId, initialStatus, initialMultiSkill) {
       }
       const labels = {
         pending: 'Waiting in queue...',
-        cloning: 'Cloning repository...',
-        cloned: 'Clone complete',
+        cloning: this.isClawhub ? '🦞 Downloading from ClawHub...' : 'Cloning repository...',
+        cloned: this.isClawhub ? '🦞 Download complete' : 'Clone complete',
         scanning: 'Running security audit...',
         saving: 'Saving results...',
         done: 'Complete!',
@@ -210,6 +211,8 @@ function reportPage(scanId) {
 
     // Deep Scan modal state
     showDeepScanModal: false,
+    deepScanBaseUrl: localStorage.getItem('sg-deep-scan-base-url') || '',
+    deepScanApiKey: localStorage.getItem('sg-deep-scan-api-key') || '',
     deepScanModel: 'claude-sonnet-4-6',
     deepScanLoading: false,
     deepScanError: '',
@@ -246,6 +249,20 @@ function reportPage(scanId) {
 
     async startDeepScan() {
       this.deepScanError = '';
+
+      if (!this.deepScanBaseUrl.trim()) {
+        this.deepScanError = 'Please enter Base URL';
+        return;
+      }
+      if (!this.deepScanApiKey.trim()) {
+        this.deepScanError = 'Please enter API Key';
+        return;
+      }
+
+      // Persist to localStorage
+      localStorage.setItem('sg-deep-scan-base-url', this.deepScanBaseUrl.trim());
+      localStorage.setItem('sg-deep-scan-api-key', this.deepScanApiKey.trim());
+
       this.deepScanLoading = true;
 
       try {
@@ -255,6 +272,8 @@ function reportPage(scanId) {
           body: JSON.stringify({
             scan_id: this.scanId,
             model: this.deepScanModel,
+            base_url: this.deepScanBaseUrl.trim(),
+            api_key: this.deepScanApiKey.trim(),
           }),
         });
 
@@ -282,13 +301,14 @@ function reportPage(scanId) {
 
 /* ── Deep Scan Progress ────────────────────────────────────────── */
 
-function deepScanProgress(deepScanId, initialStatus) {
+function deepScanProgress(deepScanId, initialStatus, isClawhub) {
   return {
     deepScanId,
     scanId: '',
     phase: initialStatus || 'pending',
     progress: 0,
     errorMsg: '',
+    isClawhub: !!isClawhub,
     steps: [
       { id: 'preparing',  label: 'Environment setup',       status: 'pending', detail: '' },
       { id: 'running',    label: 'LLM-driven execution',    status: 'pending', detail: '' },

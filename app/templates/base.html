@@ -8,6 +8,14 @@
   <script>
     tailwind.config = {
       darkMode: 'class',
+      safelist: [
+        'bg-orange-500', 'bg-orange-50', 'bg-orange-100',
+        'border-orange-200', 'border-orange-300', 'border-orange-700', 'border-orange-800',
+        'text-orange-500', 'text-orange-600', 'text-orange-700',
+        'dark:bg-orange-900/10', 'dark:bg-orange-900/20', 'dark:bg-orange-900/30',
+        'dark:border-orange-700', 'dark:border-orange-800',
+        'dark:text-orange-300', 'dark:text-orange-400',
+      ],
       theme: {
         extend: {
           colors: {
@@ -25,7 +33,7 @@
   <link rel="stylesheet" href="/static/style.css">
   {% block head %}{% endblock %}
 </head>
-<body class="min-h-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
+<body class="min-h-screen flex flex-col bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors" style="overflow-y: scroll">
   <!-- Navigation -->
   <nav class="border-b border-gray-200 dark:border-gray-800 bg-white/80 dark:bg-gray-950/80 backdrop-blur-sm sticky top-0 z-50">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -79,7 +87,7 @@
     </div>
   </footer>
 
-  <script src="/static/app.js"></script>
+  <script src="/static/app.js?v=2"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

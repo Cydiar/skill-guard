@@ -37,3 +37,13 @@ data/*.sqlite3
 
 # Redis
 dump.rdb
+
+# Docs (keep local only)
+docs/
+
+# Docker (removed)
+Dockerfile
+docker-compose.yml
+
+# CLI/TUI (removed)
+cli/

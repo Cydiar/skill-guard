@@ -1,18 +1,19 @@
-"""Git clone task — fast tarball download with git clone fallback."""
+"""Clone task — GitHub tarball/git clone + ClawHub ZIP download."""
 
 import os
 import shutil
 import subprocess
 import tarfile
 import tempfile
+import zipfile
 from io import BytesIO
 from pathlib import Path
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
-from app.config import CLONE_TIMEOUT, MAX_REPO_SIZE_MB
+from app.config import CLONE_TIMEOUT, MAX_REPO_SIZE_MB, CLAWHUB_API_BASE
 from app.db import update_scan_status
-from app.engine.scanner import parse_github_url
+from app.engine.scanner import parse_github_url, parse_clawhub_url, is_clawhub_url
 from app.workers import celery_app
 from app.workers._progress import publish_progress
 
@@ -53,24 +54,80 @@ def _download_tarball(owner: str, repo: str, clone_dir: Path, timeout: int) -> P
         return None
 
 
+def _download_clawhub_zip(slug: str, clone_dir: Path, timeout: int) -> Path | None:
+    """Download and extract a ClawHub skill ZIP. Returns skill dir or None."""
+    url = f"{CLAWHUB_API_BASE}/download?slug={slug}"
+    try:
+        req = Request(url, headers={"User-Agent": "SkillGuard/1.0"})
+        resp = urlopen(req, timeout=timeout)
+        data = BytesIO(resp.read())
+    except (HTTPError, URLError):
+        return None
+
+    try:
+        with zipfile.ZipFile(data) as zf:
+            # Security: filter out absolute paths and path traversal
+            safe_names = [
+                n for n in zf.namelist()
+                if not n.startswith("/") and ".." not in n
+            ]
+            zf.extractall(path=str(clone_dir), members=[
+                zf.getinfo(n) for n in safe_names
+            ])
+
+        # Determine target: if ZIP extracts into a single subdir, use that;
+        # otherwise use clone_dir itself as the skill root
+        children = [d for d in clone_dir.iterdir() if d.is_dir()]
+        if len(children) == 1:
+            return children[0]
+
+        # Files extracted flat — treat clone_dir as skill root
+        if any(clone_dir.glob("*.md")):
+            return clone_dir
+
+        return clone_dir
+    except Exception:
+        return None
+
+
 @celery_app.task(bind=True, name="clone_repo")
 def clone_repo(self, scan_id: str, github_url: str) -> str:
-    """Download a GitHub repo and return the local path.
+    """Download a skill repo/package and return the local path.
 
-    Strategy: try fast tarball download first, fall back to git clone.
-
-    Security:
-      - Tarball: safe member filtering, size limit check
-      - Git: GIT_CONFIG_NOSYSTEM=1, shallow clone (depth 1)
-      - Timeout enforced
-      - Repo size checked after extraction
+    Supports:
+      - GitHub URLs: tarball download → git clone fallback
+      - ClawHub URLs: ZIP download via ClawHub API
     """
     update_scan_status(scan_id, "cloning")
     publish_progress(scan_id, "cloning", 10)
 
-    owner, repo, subpath = parse_github_url(github_url)
-
     clone_dir = Path(tempfile.mkdtemp(prefix="sg_clone_"))
+
+    if is_clawhub_url(github_url):
+        # ── ClawHub path ──
+        slug = parse_clawhub_url(github_url)
+        target = _download_clawhub_zip(slug, clone_dir, timeout=CLONE_TIMEOUT)
+
+        if target is None:
+            shutil.rmtree(clone_dir, ignore_errors=True)
+            update_scan_status(scan_id, "error", error_message=f"ClawHub download failed for: {slug}")
+            publish_progress(scan_id, "error", 0)
+            raise RuntimeError(f"Failed to download ClawHub skill: {slug}")
+
+        # Size check
+        total_size = sum(f.stat().st_size for f in target.rglob("*") if f.is_file())
+        if total_size > MAX_REPO_SIZE_MB * 1024 * 1024:
+            shutil.rmtree(clone_dir, ignore_errors=True)
+            update_scan_status(scan_id, "error", error_message=f"Skill exceeds {MAX_REPO_SIZE_MB}MB limit")
+            publish_progress(scan_id, "error", 0)
+            raise ValueError(f"Skill size exceeds {MAX_REPO_SIZE_MB}MB limit")
+
+        update_scan_status(scan_id, "cloned")
+        publish_progress(scan_id, "cloned", 30)
+        return str(target)
+
+    # ── GitHub path ──
+    owner, repo, subpath = parse_github_url(github_url)
 
     # Fast path: tarball download (no git protocol overhead)
     target = _download_tarball(owner, repo, clone_dir, timeout=CLONE_TIMEOUT)

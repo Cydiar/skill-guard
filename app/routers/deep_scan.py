@@ -24,6 +24,8 @@ router = APIRouter(prefix="/api/deep-scan", tags=["deep-scan"])
 class DeepScanRequest(BaseModel):
     scan_id: str
     model: str = DEEP_SCAN_DEFAULT_MODEL
+    base_url: str = ""
+    api_key: str = ""
 
 
 class DeepScanResponse(BaseModel):
@@ -61,6 +63,12 @@ async def start_deep_scan(req: DeepScanRequest):
     if req.model not in DEEP_SCAN_MODELS:
         raise HTTPException(status_code=400, detail=f"Unsupported model: {req.model}. Available: {list(DEEP_SCAN_MODELS.keys())}")
 
+    # Require user-provided API credentials
+    if not req.base_url.strip():
+        raise HTTPException(status_code=400, detail="base_url is required")
+    if not req.api_key.strip():
+        raise HTTPException(status_code=400, detail="api_key is required")
+
     scan = get_scan(req.scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail="Static scan not found")
@@ -91,9 +99,9 @@ async def start_deep_scan(req: DeepScanRequest):
         deep_scan_id = str(uuid.uuid4())
         create_deep_scan(deep_scan_id, target_id, req.model, "anthropic")
 
-        # Dispatch Celery task (uses built-in API key from config)
+        # Dispatch Celery task with user-provided API credentials
         run_deep_scan.apply_async(
-            args=[deep_scan_id, target_id, req.model],
+            args=[deep_scan_id, target_id, req.model, req.base_url.strip(), req.api_key.strip()],
             task_id=deep_scan_id,
         )
         deep_scan_ids.append(deep_scan_id)

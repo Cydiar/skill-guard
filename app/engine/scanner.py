@@ -91,6 +91,24 @@ def parse_github_url(url: str) -> tuple[str, str, Optional[str]]:
     return owner, repo, subpath
 
 
+def parse_clawhub_url(url: str) -> str:
+    """Parse a ClawHub URL and return the skill slug.
+
+    Supported format: https://clawhub.ai/<author>/<slug>
+    """
+    parsed = urlparse(url.strip())
+    parts = parsed.path.strip("/").split("/")
+    if len(parts) < 2:
+        raise ValueError(f"Invalid ClawHub URL: {url}")
+    return parts[1]  # slug
+
+
+def is_clawhub_url(url: str) -> bool:
+    """Check if a URL points to clawhub.ai."""
+    parsed = urlparse(url.strip())
+    return parsed.hostname in ("clawhub.ai", "www.clawhub.ai")
+
+
 def detect_skills(clone_dir: Path) -> list[Path]:
     """Walk clone_dir up to depth 3, find all dirs containing SKILL.md.
 

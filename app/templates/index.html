@@ -9,7 +9,7 @@
       Audit Any <span class="text-green-500">AI Skill</span> in Seconds
     </h1>
     <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
-      Paste a GitHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.
+      Paste a GitHub or ClawHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.
     </p>
 
     <!-- Scan Form -->
@@ -18,7 +18,7 @@
         <input
           type="url"
           x-model="url"
-          placeholder="https://github.com/owner/repo"
+          placeholder="Github / Clawhub Skill Urls"
           required
           class="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow"
         >
@@ -71,7 +71,7 @@
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-xl font-semibold">Recent Scans</h2>
       <button onclick="if(confirm('Clear all scan history?')){fetch('/api/scan/clear',{method:'DELETE'}).then(()=>location.reload())}"
-        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/10 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors">
+        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/10 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors relative top-[3px]">
         Clear
       </button>
     </div>
@@ -97,8 +97,10 @@
             <td class="py-3 text-gray-600 dark:text-gray-400">
               {% if scan.get('is_multi_skill') %}
               <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">Multi-Skill</span>
+              {% elif scan.github_url.startswith('https://clawhub.ai') %}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">OpenClaw</span>
               {% else %}
-              {{ scan.skill_name or '—' }}
+              <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">Single-Skill</span>
               {% endif %}
             </td>
             <td class="py-3">

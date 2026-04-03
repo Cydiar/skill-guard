@@ -2480,8 +2480,7 @@ document.documentElement.dataset.lang=l;
   --cell-ref: 270 60% 70%; --card-shadow: 0 0% 0%/0.15;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:hsl(var(--background));color:hsl(var(--foreground));line-height:1.6;-webkit-font-smoothing:antialiased}
-.container{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}
+body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:hsl(var(--background));color:hsl(var(--foreground));line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column;overflow-y:scroll;overflow-x:hidden}
 h1{font-size:1.875rem;font-weight:700;letter-spacing:-0.025em;line-height:1.2;color:hsl(var(--foreground))}
 h2{font-size:1.25rem;font-weight:600;letter-spacing:-0.02em;color:hsl(var(--foreground));margin-top:2rem;margin-bottom:0.75rem}
 h3{font-size:1rem;font-weight:600;color:hsl(var(--foreground));margin-top:1.25rem;margin-bottom:0.5rem}
@@ -2493,6 +2492,10 @@ p,.text-body{font-size:0.875rem;line-height:1.7;color:hsl(var(--foreground))}
 .tracking-tight{letter-spacing:-0.025em}
 .flex{display:flex} .items-center{align-items:center} .justify-between{justify-content:space-between}
 .gap-2{gap:0.5rem} .gap-3{gap:0.75rem}
+.nav-container,.main-container,.footer-container{max-width:72rem;margin:0 auto;padding-left:1rem;padding-right:1rem}
+@media(min-width:640px){.nav-container,.main-container,.footer-container{padding-left:1.5rem;padding-right:1.5rem}}
+@media(min-width:1024px){.nav-container,.main-container,.footer-container{padding-left:2rem;padding-right:2rem}}
+.main-container{padding-top:2rem;padding-bottom:2rem}
 .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius)}
 .card-header{padding:1.25rem 1.5rem 0.75rem}
 .card-content{padding:0 1.5rem 1.25rem}
@@ -2535,10 +2538,35 @@ p,.text-body{font-size:0.875rem;line-height:1.7;color:hsl(var(--foreground))}
 [data-lang="zh"] [data-i18n-en]{display:none!important}
 [data-lang="en"] [data-i18n-zh]{display:none!important}
 @media(max-width:640px){.container{padding:1rem} h1{font-size:1.5rem} .data-table{font-size:0.75rem}}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background-color:rgba(128,128,128,0.3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(128,128,128,0.5)}
 </style>
 </head>
 <body>
-<div class="container">
+<!-- Navigation -->
+<nav style="border-bottom:1px solid hsl(var(--border));background:hsl(var(--background)/0.8);backdrop-filter:blur(8px);position:sticky;top:0;z-index:50">
+  <div class="nav-container">
+    <div style="display:flex;align-items:center;justify-content:space-between;height:4rem">
+      <div style="display:flex;align-items:center;gap:1.5rem">
+        <a href="/" style="font-size:1.125rem;font-weight:700;letter-spacing:-0.025em;color:hsl(var(--foreground));text-decoration:none">Skill Guard</a>
+        <a href="/" style="font-size:0.875rem;color:hsl(var(--muted-foreground));text-decoration:none;transition:color 0.2s">Home</a>
+        <a href="/rules" style="font-size:0.875rem;color:hsl(var(--muted-foreground));text-decoration:none;transition:color 0.2s">Rules</a>
+        <a href="/methodology" style="font-size:0.875rem;color:hsl(var(--muted-foreground));text-decoration:none;transition:color 0.2s">Methodology</a>
+      </div>
+      <div style="display:flex;align-items:center;gap:0.5rem">
+        <button class="lang-toggle" id="langToggle" title="Toggle language"><span data-i18n-zh>EN</span><span data-i18n-en>CN</span></button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+          <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="main-container" style="flex:1">
 
 <div class="page-header">
   <div class="flex items-center justify-between">
@@ -2546,13 +2574,6 @@ p,.text-body{font-size:0.875rem;line-height:1.7;color:hsl(var(--foreground))}
       <h1 class="tracking-tight"><span data-i18n-zh>审计方法论</span><span data-i18n-en>Audit Methodology</span></h1>
       <p><span data-i18n-zh>安全审计维度、检测规则与成本估算模型说明</span><span data-i18n-en>Security audit dimensions, detection rules, and cost estimation model</span></p>
       <div style="margin-top:0.5rem">$report_link</div>
-    </div>
-    <div class="flex gap-2">
-      <button class="lang-toggle" id="langToggle" title="Toggle language"><span data-i18n-zh>EN</span><span data-i18n-en>CN</span></button>
-      <button class="theme-toggle" id="themeToggle" title="Toggle theme">
-        <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-        <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
     </div>
   </div>
   <div style="display:flex;gap:1.5rem;margin-top:0.75rem;flex-wrap:wrap">
@@ -2717,6 +2738,14 @@ $model_table
 </div>
 
 </div>
+
+<!-- Footer -->
+<footer style="border-top:1px solid hsl(var(--border));margin-top:4rem;padding:2rem 0">
+  <div class="footer-container" style="text-align:center;font-size:0.875rem;color:hsl(var(--muted-foreground))">
+    SkillGuard &mdash; AI Agent Skill Security Auditor &middot; 10 Dimensions &middot; 109 Rules (67 Built-in + 42 Configurable)
+  </div>
+</footer>
+
 <script>
 (function(){
   var html=document.documentElement;

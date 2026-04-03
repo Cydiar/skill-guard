@@ -6,8 +6,6 @@ No dependency on anthropic SDK. Uses httpx + x-api-key header.
 import httpx
 from dataclasses import dataclass, field
 
-from app.config import DEEP_SCAN_BASE_URL, DEEP_SCAN_API_KEY
-
 
 @dataclass
 class ToolCall:
@@ -29,10 +27,10 @@ class LLMResponse:
 class LLMClient:
     """Anthropic Messages API client via httpx."""
 
-    def __init__(self, model: str, api_key: str | None = None, base_url: str | None = None):
+    def __init__(self, model: str, api_key: str, base_url: str):
         self.model = model
-        self.api_key = api_key or DEEP_SCAN_API_KEY
-        self.base_url = (base_url or DEEP_SCAN_BASE_URL).rstrip("/")
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
         self._total_input = 0
         self._total_output = 0
         self._http = httpx.Client(timeout=120)
@@ -101,7 +99,11 @@ class LLMClient:
         return {"input_tokens": self._total_input, "output_tokens": self._total_output}
 
 
-def create_llm_client(model: str, api_key: str | None = None,
-                      base_url: str | None = None) -> LLMClient:
-    """Factory: create LLM client with built-in credentials."""
+def create_llm_client(model: str, api_key: str = "",
+                      base_url: str = "") -> LLMClient:
+    """Factory: create LLM client with user-provided credentials."""
+    if not api_key:
+        raise ValueError("api_key is required for Deep Scan")
+    if not base_url:
+        raise ValueError("base_url is required for Deep Scan")
     return LLMClient(model=model, api_key=api_key, base_url=base_url)

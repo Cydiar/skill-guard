@@ -13,11 +13,12 @@ class ScanRequest(BaseModel):
     def validate_github_url(cls, v: str) -> str:
         v = v.strip()
         parsed = urlparse(v)
-        if parsed.hostname not in ("github.com", "www.github.com"):
-            raise ValueError("Only github.com URLs are supported")
+        allowed = ("github.com", "www.github.com", "clawhub.ai", "www.clawhub.ai")
+        if parsed.hostname not in allowed:
+            raise ValueError("Only github.com and clawhub.ai URLs are supported")
         parts = parsed.path.strip("/").split("/")
         if len(parts) < 2:
-            raise ValueError("URL must be in the format https://github.com/owner/repo")
+            raise ValueError("URL must be in the format https://github.com/owner/repo or https://clawhub.ai/author/skill")
         return v
 
 

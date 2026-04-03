@@ -4,6 +4,7 @@ Uses the same Shadcn/ui design system as the audit report.
 """
 
 import html as H
+import json
 import re
 from pathlib import Path
 
@@ -30,6 +31,7 @@ def md2html(md: str, skip_h1: bool = True) -> str:
     lines = md.split("\n")
     out = []
     in_code = False
+    code_first_line = False
     in_ul = False
     in_ol = False
     in_table = False
@@ -60,6 +62,7 @@ def md2html(md: str, skip_h1: bool = True) -> str:
                 close_list()
                 close_table()
                 in_code = True
+                code_first_line = True
                 lang = line.strip()[3:].strip()
                 cls = f' class="lang-{H.escape(lang)}"' if lang else ""
                 out.append(f'<div class="code-wrap"><pre><code{cls}>')
@@ -71,7 +74,11 @@ def md2html(md: str, skip_h1: bool = True) -> str:
                 i += 1
                 continue
         if in_code:
-            out.append(H.escape(line))
+            if code_first_line:
+                out[-1] += H.escape(line)
+                code_first_line = False
+            else:
+                out.append(H.escape(line))
             i += 1
             continue
 
@@ -214,9 +221,276 @@ def load_prds():
             "title": title,
             "subtitle": subtitle,
             "phase": phase,
-            "body_html": md2html(content),
+            "body_html": inject_charts_into_html(md2html(content), f.stem.lower()),
         })
     return docs
+
+
+# ── Chart Definitions ───────────────────────────────────────────────────────
+
+def get_chart_syntaxes() -> dict[str, dict]:
+    """Return infographic syntax strings and metadata for each chart."""
+    return {
+        "chart-rule-distribution": {
+            "title": "10 维度规则分布：内置 vs 可配置",
+            "caption": "PRD-003 · 各维度内置规则与可配置规则数量对比",
+            "syntax": """\
+infographic chart-bar-plain-text
+data
+  title 10 维度规则分布：内置 vs 可配置
+  values
+    - label Prompt 注入
+      value 13
+      desc 内置 10 + 可配置 3
+    - label 权限提升
+      value 10
+      desc 内置 10
+    - label 数据外泄
+      value 19
+      desc 内置 1 + 可配置 18
+    - label 破坏性操作
+      value 17
+      desc 内置 17
+    - label 供应链验证
+      value 8
+      desc 可配置 8
+    - label 代码安全
+      value 17
+      desc 内置 17
+    - label 凭证泄露
+      value 13
+      desc 内置 13
+    - label 权限最小化
+      value 3
+      desc 可配置 3
+    - label 许可证合规
+      value 7
+      desc 可配置 7
+    - label 资源滥用
+      value 9
+      desc 内置 1 + 可配置 8""",
+        },
+        "chart-scoring-weights": {
+            "title": "综合评分权重分布",
+            "caption": "PRD-006 · 三大评分维度权重",
+            "syntax": """\
+infographic list-grid-circular-progress
+data
+  title 综合评分权重分布
+  lists
+    - label 静态分析
+      value 40
+      desc 10 维度 109 条规则（67 内置 + 42 可配置）
+    - label 依赖审计
+      value 20
+      desc CVE 数量 × 严重度加权
+    - label 行为分析
+      value 40
+      desc 网络 / 文件 / 进程行为分类""",
+        },
+        "chart-deep-verdict": {
+            "title": "Deep Verdict 判定类型",
+            "caption": "PRD-005 · 5 种验证判定分类",
+            "syntax": """\
+infographic chart-pie-donut-plain-text
+data
+  title Deep Verdict 判定类型
+  values
+    - label Confirmed
+      value 20
+      desc 确认风险
+    - label Mitigated
+      value 20
+      desc 已缓解
+    - label Downgraded
+      value 20
+      desc 降级处理
+    - label Inconclusive
+      value 20
+      desc 无法判定
+    - label Escalated
+      value 20
+      desc 升级处理""",
+        },
+        "chart-task-progress": {
+            "title": "各阶段任务完成进度",
+            "caption": "PRD-009 · Phase 1~4 已完成 vs 待完成任务数",
+            "syntax": """\
+infographic chart-column-simple
+data
+  title 各阶段任务完成进度
+  values
+    - label Phase 1
+      value 27
+      desc 27 已完成
+    - label Phase 1.5
+      value 7
+      desc 7 已完成 / 5 待完成
+    - label Phase 2
+      value 0
+      desc 8 待完成
+    - label Phase 3
+      value 0
+      desc 9 待完成
+    - label Phase 4
+      value 0
+      desc 7 待完成""",
+        },
+        "chart-risk-grades": {
+            "title": "风险等级评分刻度",
+            "caption": "PRD-006 · 各等级分值分布",
+            "syntax": """\
+infographic sequence-funnel-simple
+data
+  title 风险等级评分刻度
+  sequences
+    - label A · Safe
+      desc 0 – 9 分：安全，无已知风险
+    - label B · Acceptable
+      desc 10 – 29 分：可接受，低风险可忽略
+    - label C · Warning
+      desc 30 – 49 分：警告，建议人工复核
+    - label D · Unsafe
+      desc 50 – 69 分：不安全，存在明确风险
+    - label F · Dangerous
+      desc 70 – 100 分：危险，强烈建议禁用""",
+        },
+    }
+
+
+def inject_charts_into_html(body_html: str, doc_id: str) -> str:
+    """Insert infographic container divs above their anchor tables."""
+    charts = get_chart_syntaxes()
+
+    # Map: anchor <th> text → chart id  (specific to each PRD doc)
+    anchor_map = {
+        "prd-003-static-audit": {
+            "#": "chart-rule-distribution",
+        },
+        "prd-006-report-badge": {
+            "维度": "chart-scoring-weights",
+            "等级": "chart-risk-grades",
+        },
+        "prd-005-sandbox": {
+            "Deep Verdict": "chart-deep-verdict",
+        },
+        "prd-009-tasks": {
+            "状态": "chart-task-progress",
+        },
+    }
+
+    mapping = anchor_map.get(doc_id, {})
+    if not mapping:
+        return body_html
+
+    for th_text, chart_id in mapping.items():
+        cfg = charts[chart_id]
+        title = H.escape(cfg["title"])
+        caption = H.escape(cfg["caption"])
+        chart_block = (
+            f'<div class="chart-container" id="{chart_id}-wrap">'
+            f'<div class="chart-caption">{caption}</div>'
+            f'<div class="chart-render" id="{chart_id}"></div>'
+            f'</div>'
+        )
+        # Find first table that starts with this <th> text
+        # md2html renders: <div class="table-wrap"><table><thead><tr>\n<th>TEXT</th>
+        anchor = (
+            '<div class="table-wrap"><table><thead><tr>\n'
+            '<th>' + th_text + '</th>'
+        )
+        idx = body_html.find(anchor)
+        if idx != -1:
+            body_html = body_html[:idx] + chart_block + body_html[idx:]
+
+    return body_html
+
+
+def build_chart_script() -> str:
+    """Return the <script> block that initialises all @antv/infographic charts."""
+    charts = get_chart_syntaxes()
+    # Build a JS object mapping chart id → syntax string
+    syntax_map = {cid: cfg["syntax"] for cid, cfg in charts.items()}
+    syntax_json = json.dumps(syntax_map, ensure_ascii=False)
+
+    return f"""<script>
+(function() {{
+  var SYNTAXES = {syntax_json};
+
+  // Per-doc chart ids
+  var DOC_CHARTS = {{
+    'prd-003-static-audit': ['chart-rule-distribution'],
+    'prd-006-report-badge': ['chart-scoring-weights', 'chart-risk-grades'],
+    'prd-005-sandbox':      ['chart-deep-verdict'],
+    'prd-009-tasks':        ['chart-task-progress'],
+  }};
+
+  // Infographic instances registry
+  var instances = {{}};
+  var initialised = {{}};
+
+  function initChart(id) {{
+    var el = document.getElementById(id);
+    if (!el || instances[id]) return;
+    var syntax = SYNTAXES[id];
+    if (!syntax) return;
+    try {{
+      var I = AntVInfographic.Infographic;
+      var ig = new I({{
+        container: '#' + id,
+        width: '100%',
+        height: '100%',
+      }});
+      ig.render(syntax);
+      instances[id] = ig;
+    }} catch (e) {{
+      console.warn('Infographic init failed for', id, e);
+    }}
+  }}
+
+  function initDocCharts(docId) {{
+    if (initialised[docId]) return;
+    initialised[docId] = true;
+    var ids = DOC_CHARTS[docId] || [];
+    ids.forEach(function(id) {{ initChart(id); }});
+  }}
+
+  function destroyAll() {{
+    Object.keys(instances).forEach(function(id) {{
+      try {{ instances[id].destroy(); }} catch(e) {{}}
+      delete instances[id];
+    }});
+    initialised = {{}};
+  }}
+
+  // ── Hook into existing navigation ───────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {{
+    // Init charts for whichever doc is active on load
+    var active = document.querySelector('.doc.active');
+    if (active) initDocCharts(active.id);
+
+    // Listen for nav clicks
+    document.querySelectorAll('[data-doc]').forEach(function(btn) {{
+      btn.addEventListener('click', function() {{
+        var id = btn.dataset.doc;
+        setTimeout(function() {{ initDocCharts(id); }}, 80);
+      }});
+    }});
+
+    // Theme toggle: destroy + re-init visible
+    var themeBtn = document.getElementById('themeBtn');
+    if (themeBtn) {{
+      themeBtn.addEventListener('click', function() {{
+        setTimeout(function() {{
+          destroyAll();
+          var active = document.querySelector('.doc.active');
+          if (active) initDocCharts(active.id);
+        }}, 80);
+      }});
+    }}
+  }});
+}})();
+</script>"""
 
 
 # ── Generate HTML ───────────────────────────────────────────────────────────
@@ -554,7 +828,18 @@ tbody tr:last-child td {{ border-bottom: none; }}
   border-top: 1px solid hsl(var(--border));
   font-size: 0.75rem; color: hsl(var(--muted-foreground));
 }}
+
+/* ── Charts ────────────────────────────────────────────────────── */
+.chart-container {{
+  position: relative; margin: 0.75rem 0 0.5rem; padding: 1.25rem;
+  background: hsl(var(--card)); border: 1px solid hsl(var(--border));
+  border-radius: var(--radius); overflow: hidden;
+}}
+.chart-render {{ width: 100%; min-height: 200px; }}
+.chart-render svg {{ display: block; max-width: 100%; }}
+.chart-caption {{ font-size: 0.75rem; color: hsl(var(--muted-foreground)); text-align: center; margin-bottom: 0.5rem; }}
 </style>
+<script src="https://unpkg.com/@antv/infographic@latest/dist/infographic.min.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -611,6 +896,7 @@ tbody tr:last-child td {{ border-bottom: none; }}
   go(location.hash.slice(1)||docs[0].id);
 }})();
 </script>
+{build_chart_script()}
 </body>
 </html>'''
 

@@ -32,8 +32,8 @@ def _re_clone(scan: dict, report_json: dict) -> tuple[Path, str]:
 
     Returns (skill_dir, clone_dir_path) — caller must clean up clone_dir.
     """
-    from app.workers.clone import _download_tarball
-    from app.engine.scanner import parse_github_url
+    from app.workers.clone import _download_tarball, _download_clawhub_zip
+    from app.engine.scanner import parse_github_url, parse_clawhub_url, is_clawhub_url
     import subprocess, os
     from app.config import CLONE_TIMEOUT
 
@@ -41,6 +41,17 @@ def _re_clone(scan: dict, report_json: dict) -> tuple[Path, str]:
     if not github_url:
         raise ValueError("No github_url in scan record")
 
+    clone_dir = Path(tempfile.mkdtemp(prefix="sg_deepscan_"))
+
+    if is_clawhub_url(github_url):
+        # ── ClawHub path ──
+        slug = parse_clawhub_url(github_url)
+        target = _download_clawhub_zip(slug, clone_dir, timeout=CLONE_TIMEOUT)
+        if target is None:
+            raise RuntimeError(f"Failed to re-download ClawHub skill: {slug}")
+        return target, str(clone_dir)
+
+    # ── GitHub path ──
     owner, repo, subpath = parse_github_url(github_url)
     clone_dir = Path(tempfile.mkdtemp(prefix="sg_deepscan_"))
 
@@ -80,10 +91,11 @@ def _re_clone(scan: dict, report_json: dict) -> tuple[Path, str]:
 
 
 @celery_app.task(bind=True, name="run_deep_scan", time_limit=600, soft_time_limit=540)
-def run_deep_scan(self, deep_scan_id: str, scan_id: str, model: str):
+def run_deep_scan(self, deep_scan_id: str, scan_id: str, model: str,
+                  base_url: str = "", api_key: str = ""):
     """Execute Deep Scan: LLM-driven skill analysis with full trace.
 
-    Uses built-in API key and base_url from config.
+    Uses user-provided API credentials.
 
     Phases:
         1. preparing  (0-15%)  — Load static results, create LLM client
@@ -114,8 +126,8 @@ def run_deep_scan(self, deep_scan_id: str, scan_id: str, model: str):
 
         static_findings = get_scan_findings(scan_id)
 
-        # Create LLM client with built-in credentials
-        llm_client = create_llm_client(model)
+        # Create LLM client with user-provided credentials
+        llm_client = create_llm_client(model, api_key=api_key, base_url=base_url)
         _publish(deep_scan_id, "preparing", 15)
 
         # ── Phase 2: Running ────────────────────────────────────────
