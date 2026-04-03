@@ -80,33 +80,36 @@ YAML-based rule engine — enable, disable, adjust severity, or add whitelist en
 
 ## Architecture
 
-```
-                    ┌──────────────┐
-                    │   Browser    │
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │   FastAPI    │  :8011
-                    │   Uvicorn    │
-                    └──────┬───────┘
-                           │
-              ┌────────────┼────────────┐
-              │            │            │
-       ┌──────▼──────┐ ┌──▼───┐ ┌──────▼──────┐
-       │ Static Scan │ │Redis │ │  Deep Scan  │
-       │   Engine    │ │      │ │  (Celery)   │
-       └─────────────┘ └──────┘ └─────────────┘
-                                       │
-                                ┌──────▼──────┐
-                                │  LLM API    │
-                                │ (User BYOK) │
-                                └─────────────┘
-```
+```mermaid
+graph TD
+    Browser["🌐 Browser"]
+    FastAPI["⚡ FastAPI + Uvicorn\n:8011"]
+    Static["🔍 Static Scan\nEngine"]
+    Redis["📮 Redis\nBroker + Pub/Sub"]
+    Celery["⚙️ Celery Worker\nDeep Scan"]
+    SQLite["🗄️ SQLite\nScans · Findings · Traces"]
+    LLM["🧠 LLM API\nBYOK"]
+    PIPELLM["🔗 PIPELLM Gateway\n(Optional)"]
 
-- **FastAPI** — Web UI + REST API
-- **Celery + Redis** — Async task queue for scan jobs
-- **SQLite** — Scan results and report storage
-- **LLM Client** — BYOK (Bring Your Own Key) for Deep Scan
+    Browser -->|"HTTP / WebSocket"| FastAPI
+    FastAPI --> Static
+    FastAPI -->|"Task Dispatch"| Redis
+    Redis -->|"Task Consume"| Celery
+    FastAPI --> SQLite
+    Celery --> SQLite
+    Celery -->|"Anthropic Messages API"| LLM
+    Celery -.->|"Optional Routing"| PIPELLM
+    PIPELLM -.-> LLM
+
+    style Browser fill:#f9f9f9,stroke:#333,color:#333
+    style FastAPI fill:#009688,stroke:#00796b,color:#fff
+    style Static fill:#4caf50,stroke:#388e3c,color:#fff
+    style Redis fill:#f44336,stroke:#d32f2f,color:#fff
+    style Celery fill:#ff9800,stroke:#f57c00,color:#fff
+    style SQLite fill:#2196f3,stroke:#1976d2,color:#fff
+    style LLM fill:#9c27b0,stroke:#7b1fa2,color:#fff
+    style PIPELLM fill:#212121,stroke:#000,color:#fff
+```
 
 ## Deep Scan
 
