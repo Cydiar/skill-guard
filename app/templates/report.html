@@ -1,16 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Report — {{ scan.skill_name or 'SkillGuard' }}{% endblock %}
 
-{% block nav_extras %}
-<button x-data="{ l: localStorage.getItem('sg-lang') || 'en' }"
-  @click="l = l === 'en' ? 'zh' : 'en'; localStorage.setItem('sg-lang', l)"
-  x-text="l === 'en' ? '中文' : 'EN'"
-  class="px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-</button>
-{% endblock %}
-
 {% block content %}
-<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="reportPage('{{ scan.id }}')">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8" x-data="reportPage('{{ scan.id }}')" @lang-changed.window="lang = $event.detail.lang">
   <!-- Breadcrumb for child scans -->
   {% if scan.get('parent_scan_id') %}
   <div class="mb-4">

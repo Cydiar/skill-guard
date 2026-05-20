@@ -229,6 +229,10 @@ function reportPage(scanId) {
       this.$watch('lang', (val) => {
         localStorage.setItem('sg-lang', val);
       });
+      // Listen to lang-changed event from navbar
+      window.addEventListener('lang-changed', (e) => {
+        this.lang = e.detail.lang;
+      });
       // Sync lang when navbar toggle changes localStorage
       window.addEventListener('storage', (e) => {
         if (e.key === 'sg-lang' && e.newValue) this.lang = e.newValue;
@@ -237,7 +241,7 @@ function reportPage(scanId) {
       setInterval(() => {
         const stored = localStorage.getItem('sg-lang') || 'en';
         if (stored !== this.lang) this.lang = stored;
-      }, 500);
+      }, 200);
     },
 
     /** Extract the language-appropriate part from bilingual text like "中文名 (English Name)" */

@@ -140,7 +140,25 @@ SEVERITY_SCORES = {
 SEVERITY_ORDER = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3, "INFO": 4}
 
 def compute_risk(findings: List[Finding]) -> Tuple[int, str]:
-    score = sum(SEVERITY_SCORES.get(f.severity, 0) for f in findings)
+    """Compute risk score and level from findings, with deduplication.
+
+    Deduplicates findings that match the same file+line to avoid double-counting
+    similar patterns (e.g., 'rm -rf /' and 'rm -rf' on the same line).
+    """
+    # Deduplicate by (file_path, line_number) - keep highest severity
+    deduped = {}
+    for f in findings:
+        key = (f.file_path, f.line_number)
+        if key not in deduped:
+            deduped[key] = f
+        else:
+            # Keep the higher severity finding
+            existing = deduped[key]
+            if SEVERITY_ORDER.get(f.severity, 99) < SEVERITY_ORDER.get(existing.severity, 99):
+                deduped[key] = f
+
+    unique_findings = list(deduped.values())
+    score = sum(SEVERITY_SCORES.get(f.severity, 0) for f in unique_findings)
     score = min(score, 100)
     if score >= 70:
         level = "F"

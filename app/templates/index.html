@@ -6,10 +6,11 @@
   <!-- Hero -->
   <div class="text-center mb-16">
     <h1 class="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-      Audit Any <span class="text-green-500">Skill</span> in Seconds
+      <span x-text="lang === 'en' ? 'Audit Any' : '审计任意'"></span> <span class="text-green-500">Skill</span> <span x-text="lang === 'en' ? 'in Seconds' : '只需数秒'"></span>
     </h1>
     <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8">
-      Paste a GitHub or ClawHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.
+      <span x-show="lang === 'en'">Paste a GitHub or ClawHub URL to get a comprehensive security report covering 10 dimensions and 109 rules (67 built-in + 42 configurable) based on OWASP LLM Top 10, SLSA, and Google SAIF.</span>
+      <span x-cloak x-show="lang === 'zh'">粘贴 GitHub 或 ClawHub URL，即可获取涵盖 10 个维度、109 条规则（67 条内置 + 42 条可配置）的综合安全报告，基于 OWASP LLM Top 10、SLSA 和 Google SAIF。</span>
     </p>
 
     <!-- Scan Form -->
@@ -18,7 +19,7 @@
         <input
           type="url"
           x-model="url"
-          placeholder="Paste a GitHub / ClawHub Skill Urls"
+          :placeholder="lang === 'en' ? 'Paste a GitHub / ClawHub Skill URL' : '粘贴 GitHub / ClawHub Skill URL'"
           required
           class="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-shadow"
         >
@@ -27,13 +28,13 @@
           :disabled="loading"
           class="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-lg font-medium hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
         >
-          <span x-show="!loading">Scan Now</span>
+          <span x-show="!loading" x-text="lang === 'en' ? 'Scan Now' : '立即扫描'"></span>
           <span x-show="loading" class="flex items-center gap-2">
             <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
             </svg>
-            Starting...
+            <span x-text="lang === 'en' ? 'Starting...' : '启动中...'"></span>
           </span>
         </button>
       </form>
@@ -45,23 +46,35 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div class="text-2xl font-bold mb-1">10</div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">Security Dimensions</div>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Prompt Injection, Permission Escalation, Data Exfiltration, and more</p>
+      <div class="text-sm text-gray-500 dark:text-gray-400" x-text="lang === 'en' ? 'Security Dimensions' : '安全维度'"></div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        <span x-show="lang === 'en'">Prompt Injection, Permission Escalation, Data Exfiltration, and more</span>
+        <span x-cloak x-show="lang === 'zh'">提示词注入、权限提升、数据泄露等</span>
+      </p>
     </div>
     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div class="text-2xl font-bold mb-1">109</div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">Audit Rules</div>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">67 built-in + 42 <a href="/rules" class="underline">configurable</a> — OWASP LLM Top 10, SLSA, SAIF</p>
+      <div class="text-sm text-gray-500 dark:text-gray-400" x-text="lang === 'en' ? 'Audit Rules' : '审计规则'"></div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        <span x-show="lang === 'en'">67 built-in + 42 <a href="/rules" class="underline">configurable</a> — OWASP LLM Top 10, SLSA, SAIF</span>
+        <span x-cloak x-show="lang === 'zh'">67 条内置 + 42 条<a href="/rules" class="underline">可配置</a> — OWASP LLM Top 10、SLSA、SAIF</span>
+      </p>
     </div>
     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div class="text-2xl font-bold mb-1">A-F</div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">Risk Grading</div>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Clear letter-grade risk assessment with actionable remediation</p>
+      <div class="text-sm text-gray-500 dark:text-gray-400" x-text="lang === 'en' ? 'Risk Grading' : '风险评级'"></div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        <span x-show="lang === 'en'">Clear letter-grade risk assessment with actionable remediation</span>
+        <span x-cloak x-show="lang === 'zh'">清晰的字母评级风险评估，附可操作的修复建议</span>
+      </p>
     </div>
     <div class="p-6 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
       <div class="text-2xl font-bold mb-1">$$</div>
-      <div class="text-sm text-gray-500 dark:text-gray-400">Cost Estimation</div>
-      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">Token consumption and multi-model cost projections</p>
+      <div class="text-sm text-gray-500 dark:text-gray-400" x-text="lang === 'en' ? 'Cost Estimation' : '成本估算'"></div>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+        <span x-show="lang === 'en'">Token consumption and multi-model cost projections</span>
+        <span x-cloak x-show="lang === 'zh'">Token 消耗量与多模型成本预估</span>
+      </p>
     </div>
   </div>
 
@@ -69,22 +82,22 @@
   {% if recent_scans %}
   <div>
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold">Recent Scans</h2>
+      <h2 class="text-xl font-semibold" x-text="lang === 'en' ? 'Recent Scans' : '最近扫描'"></h2>
       <button onclick="if(confirm('Clear all scan history?')){fetch('/api/scan/clear',{method:'DELETE'}).then(()=>location.reload())}"
-        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/10 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors relative top-[3px]">
-        Clear
+        class="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-300 dark:hover:bg-red-900/10 dark:hover:text-red-400 dark:hover:border-red-800 transition-colors relative top-[3px]"
+        x-text="lang === 'en' ? 'Clear' : '清除'">
       </button>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-gray-200 dark:border-gray-800 text-left text-gray-500 dark:text-gray-400">
-            <th class="pb-3 font-medium">Repository</th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Repository' : '仓库'"></th>
             <th class="pb-3 font-medium">Skill</th>
-            <th class="pb-3 font-medium">Status</th>
-            <th class="pb-3 font-medium">Risk</th>
-            <th class="pb-3 pl-8 font-medium">Deep Scan</th>
-            <th class="pb-3 pl-4 font-medium">Date</th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Status' : '状态'"></th>
+            <th class="pb-3 font-medium" x-text="lang === 'en' ? 'Risk' : '风险'"></th>
+            <th class="pb-3 pl-8 font-medium" x-text="lang === 'en' ? 'Deep Scan' : '深度扫描'"></th>
+            <th class="pb-3 pl-4 font-medium" x-text="lang === 'en' ? 'Date' : '日期'"></th>
           </tr>
         </thead>
         <tbody>
@@ -106,9 +119,9 @@
             </td>
             <td class="py-3">
               {% if scan.status == 'done' %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Done</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" x-text="lang === 'en' ? 'Done' : '完成'"></span>
               {% elif scan.status == 'error' %}
-              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Error</span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" x-text="lang === 'en' ? 'Error' : '错误'"></span>
               {% else %}
               <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">{{ scan.status | capitalize }}</span>
               {% endif %}
@@ -131,17 +144,17 @@
               {% if scan_ds %}
                 {% set latest = scan_ds[0] %}
                 {% if latest.status == 'done' %}
-                <a href="/deep-scan/{{ latest.id }}/report" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors">View Report</a>
+                <a href="/deep-scan/{{ latest.id }}/report" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors" x-text="lang === 'en' ? 'View Report' : '查看报告'"></a>
                 {% elif latest.status == 'error' %}
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">Error</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" x-text="lang === 'en' ? 'Error' : '错误'"></span>
                 {% else %}
-                <a href="/deep-scan/{{ latest.id }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 animate-pulse">Running...</a>
+                <a href="/deep-scan/{{ latest.id }}" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 animate-pulse" x-text="lang === 'en' ? 'Running...' : '运行中...'"></a>
                 {% endif %}
               {% else %}
               <span class="text-gray-400">—</span>
               {% endif %}
             </td>
-            <td class="py-3 pl-4 text-gray-500 dark:text-gray-400 text-xs">{{ scan.created_at[:16] }}</td>
+            <td class="py-3 pl-4 text-gray-500 dark:text-gray-400 text-xs">{{ scan.created_at[:10] }} {{ scan.created_at[11:16] }}</td>
           </tr>
           {% endfor %}
         </tbody>

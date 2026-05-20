@@ -4,6 +4,9 @@ import json
 import sqlite3
 import uuid
 from datetime import datetime, timezone, timedelta
+
+# UTC+8 Beijing timezone
+_CN_TZ = timezone(timedelta(hours=8))
 from pathlib import Path
 from typing import Optional
 
@@ -119,7 +122,7 @@ def init_db():
 def create_scan(github_url: str) -> str:
     """Insert a new scan record and return its UUID."""
     scan_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_CN_TZ)
     expires = now + timedelta(days=REPORT_EXPIRY_DAYS)
     conn = get_db()
     try:
@@ -217,7 +220,7 @@ def get_recent_scans(limit: int = 20) -> list[dict]:
 def create_child_scan(parent_scan_id: str, github_url: str, skill_name: str) -> str:
     """Insert a child scan row linked to a parent and return its UUID."""
     scan_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
+    now = datetime.now(_CN_TZ)
     expires = now + timedelta(days=REPORT_EXPIRY_DAYS)
     conn = get_db()
     try:
@@ -266,7 +269,7 @@ def count_child_status(parent_scan_id: str) -> dict:
 
 def create_deep_scan(deep_scan_id: str, scan_id: str, model: str, provider: str) -> str:
     """Insert a new deep_scan record."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(_CN_TZ).isoformat()
     conn = get_db()
     try:
         conn.execute(
@@ -330,7 +333,7 @@ def insert_trace_step(deep_scan_id: str, step_number: int, role: str,
                       content: str, risk_level: Optional[str] = None,
                       related_finding: Optional[str] = None):
     """Insert a single trace step."""
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(_CN_TZ).isoformat()
     conn = get_db()
     try:
         conn.execute(
