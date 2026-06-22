@@ -43,8 +43,8 @@ data_exfiltration:
   enabled: true
   whitelist: []
 - id: DE-07
-  pattern: credentials\.json
-  description: Reads credentials file
+  pattern: (?:credentials\.json|\.npmrc(?![\w.-])|\.pypirc(?![\w.-])|\.netrc(?![\w.-])|\.git-credentials(?![\w.-])|\.docker/config\.json(?![\w.-]))
+  description: Reads credentials file or developer credential store
   severity: MEDIUM
   enabled: true
   whitelist: []
